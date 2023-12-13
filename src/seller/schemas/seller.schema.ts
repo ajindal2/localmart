@@ -1,7 +1,6 @@
 import * as mongoose from 'mongoose';
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { HydratedDocument, Document, Types  } from 'mongoose';
-import { Listing } from '../../listing/schemas/listing.schema';
 
 export type SellerDocument = HydratedDocument<Seller>;
 
@@ -10,11 +9,10 @@ export class Seller {
     @Prop({ type: mongoose.Schema.Types.ObjectId, ref: 'User' })
     user: Types.ObjectId; // Reference to the User schema
   
-    @Prop({ type: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Listing' }] })
-    listings: Listing[]; // Array of listings
+    //@Prop({ type: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Listing' }] })
+    //listings: Listing[]; // Array of listings
 
     // Ratings
-    // Userprofile
     // PickUp location
 }
 

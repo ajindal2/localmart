@@ -1,4 +1,4 @@
-import { IsString, IsNumber, IsOptional, IsNotEmpty } from 'class-validator';
+import { IsString, IsNumber, IsOptional, IsNotEmpty, IsMongoId, IsArray, ArrayNotEmpty, IsIn } from 'class-validator';
 
 export class CreateListingDTO {
     @IsNotEmpty()
@@ -13,7 +13,16 @@ export class CreateListingDTO {
     @IsNumber()
     price: number;
 
+    @IsArray()
+    @ArrayNotEmpty()
+    @IsString({ each: true }) // Validates that each item in the array is a string
+    imageUrls: string[]; // An array of image URLs
+
+    @IsMongoId()
     @IsNotEmpty()
-    @IsString()
-    listingImageUrl: string;
+    sellerId: string; // This should be the seller's ObjectId as a string
+
+    @IsNotEmpty()
+    @IsIn(['active', 'archive', 'sold'])
+    state: string; // State of the listing
   }

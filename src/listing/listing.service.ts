@@ -4,10 +4,14 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Listing } from './schemas/listing.schema';
 import { CreateListingDTO } from './dtos/create-listing.dto';
 import { QueryListingDTO } from './dtos/query-listing.dto';
+import { Seller } from 'src/seller/schemas/seller.schema';
 
 @Injectable()
 export class ListingService {
-  constructor(@InjectModel(Listing.name) private readonly listingModel: Model<Listing>) { }
+  constructor(
+    @InjectModel(Listing.name) private readonly listingModel: Model<Listing>,
+    @InjectModel(Seller.name) private readonly sellerModel: Model<Seller>
+    ) { }
 
   async getFilteredListings(queryListingDTO: QueryListingDTO ): Promise<Listing[]> {
     const { title } = queryListingDTO;
@@ -51,5 +55,22 @@ export class ListingService {
   async deleteListing(id: string): Promise<any> {
     const deletedListing = await this.listingModel.findByIdAndRemove(id);
     return deletedListing;
+  }
+
+  async createListing(userId: string, createListingDto: CreateListingDTO): Promise<Listing> {
+    // Check if seller exists, if not, create one
+    let seller = await this.sellerModel.findOne({ user: userId });
+    if (!seller) {
+      seller = new this.sellerModel({ user: userId });
+      await seller.save();
+    }
+
+    // Create a new listing
+    const newListing = new this.listingModel({
+      ...createListingDto,
+      seller: seller._id
+    });
+
+    return await newListing.save();
   }
 }
