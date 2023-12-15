@@ -1,15 +1,34 @@
-import { Controller, Get, NotFoundException, Param } from '@nestjs/common';
+import { Controller, Post, Body, HttpException, HttpStatus, Get, Param, UseGuards } from '@nestjs/common';
 import { SellerService } from './seller.service';
+import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
+import { CreateSellerDTO } from './dtos/create-seller.dto';
 
 @Controller('seller')
 export class SellerController {
-    constructor(private sellerService: SellerService) {}
+  constructor(private readonly sellerService: SellerService) {}
 
-  @Get('/:sellerId')
-  async getListing(@Param('sellerId') sellerId: string) {
-    const seller = await this.sellerService.getSeller(sellerId);
-    if (!seller) throw new NotFoundException('Seller does not exist!');
-    return seller;
+  @UseGuards(JwtAuthGuard)
+  @Post()
+  async create(@Body() createSellerDto: CreateSellerDTO) {
+    try {
+      const seller = await this.sellerService.create(createSellerDto);
+      return seller;
+    } catch (error) {
+      throw new HttpException('Error creating seller', HttpStatus.BAD_REQUEST);
+    }
   }
+
+  @Get(':id')
+  async getSeller(@Param('id') sellerId: string) {
+    try {
+      const seller = await this.sellerService.findById(sellerId);
+      return seller;
+    } catch (error) {
+      throw new HttpException(error.message, HttpStatus.NOT_FOUND);
+    }
+  }
+
+  // Additional endpoint methods like GET, PUT, DELETE can be added here
 }
+
 

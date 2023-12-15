@@ -37,6 +37,9 @@ export class Listing {
       default: 'active'
     })
     state: string;
+
+    @Prop({ default: Date.now })
+    dateCreated: Date; // Date when the listing was created
     
     // Location: User should be able to give a location  (zip code or get my location) to every listing. By default, its the location in userprofile.
 }

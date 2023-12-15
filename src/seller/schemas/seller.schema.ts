@@ -9,10 +9,6 @@ export class Seller {
     @Prop({ type: mongoose.Schema.Types.ObjectId, ref: 'User' })
     user: Types.ObjectId; // Reference to the User schema
   
-    //@Prop({ type: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Listing' }] })
-    //listings: Listing[]; // Array of listings
-
-    // Ratings
     // PickUp location
 }
 

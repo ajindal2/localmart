@@ -8,6 +8,7 @@ import { AuthModule } from './auth/auth.module';
 import { ListingModule } from './listing/listing.module';
 import { SellerModule } from './seller/seller.module';
 import { UserProfileModule } from './userProfile/userProfile.module';
+import { RatingModule } from './rating/rating.module';
 
 // TODO add authentication. Ask "Can you give step by steps details on how to setup and start my mongodb server?"
 @Module({
@@ -24,6 +25,7 @@ import { UserProfileModule } from './userProfile/userProfile.module';
     ListingModule,
     SellerModule,
     UserProfileModule,
+    RatingModule,
   ],
   controllers: [AppController],
   providers: [AppService],

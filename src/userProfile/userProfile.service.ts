@@ -28,9 +28,9 @@ export class UserProfileService {
     const objectId = new mongoose.Types.ObjectId(userId);
     const userProfile = await this.userProfileModel.findOne({ userId: objectId });
     if (!userProfile) {
-        throw new NotFoundException(`UserProfile with user ID ${userId} not found`);
-      }
-      return userProfile;
+      throw new NotFoundException(`UserProfile with user ID ${userId} not found`);
+    }
+    return userProfile;
   }
 
   async deleteUserProfile(userId: string): Promise<void> {

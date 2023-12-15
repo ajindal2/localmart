@@ -1,8 +1,8 @@
-import { Controller, Post, Get, Put, Delete, Body, Param, Query, NotFoundException, UseInterceptors, UploadedFiles, Req, BadRequestException, UseGuards } from '@nestjs/common';
+import { Controller, Post, Get, Put, Delete, Body, Param, Query, NotFoundException, UseInterceptors, UploadedFiles, Req, BadRequestException, UseGuards, UnauthorizedException } from '@nestjs/common';
 import { ListingService } from './listing.service';
 import { QueryListingDTO } from './dtos/query-listing.dto';
 import { CreateListingDTO } from './dtos/create-listing.dto';
-import { FileFieldsInterceptor, FileInterceptor, FilesInterceptor } from '@nestjs/platform-express';
+import { FilesInterceptor } from '@nestjs/platform-express';
 import { Request } from 'express';
 import { diskStorage } from 'multer';
 import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
@@ -43,9 +43,18 @@ export class ListingController {
   }))
   async createListing(
     @UploadedFiles() files: Express.Multer.File[], @Req() req: Request,
-    @Body() createListingDto: CreateListingDTO,
-    @Param('userId') userId: string) {
+    @Body() createListingDto: CreateListingDTO) {
 
+      if (!req.user) {
+        throw new UnauthorizedException('No user object found in request');
+      }
+  
+      // Extract userId and check if it exists
+      const userId = req.user['userId']; // Adjust the path according to how your user object is structured
+      if (!userId) {
+        throw new UnauthorizedException('User ID not found in request');
+      }
+  
     // Check if images are uploaded
     if (!files || files.length === 0) {
       throw new BadRequestException('No images provided');
@@ -56,9 +65,7 @@ export class ListingController {
 
     // Process the files, store them, and get their URLs
     const imageUrls = files.map(file => {
-      console.log('File inside map: ', file);
       const fileUrl = `${protocol}://${host}/uploads/${file.filename}`;
-      console.log('Generated File URL:', fileUrl);
       return fileUrl;
     });
 

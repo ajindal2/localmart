@@ -59,16 +59,20 @@ export class ListingService {
 
   async createListing(userId: string, createListingDto: CreateListingDTO): Promise<Listing> {
     // Check if seller exists, if not, create one
+    console.log('Inside service method of createListing. Logging passedin useerId: ', userId);
     let seller = await this.sellerModel.findOne({ user: userId });
     if (!seller) {
+      console.log('Inside seller does not exist');
       seller = new this.sellerModel({ user: userId });
       await seller.save();
     }
 
+    console.log('Logging sellerId: ', seller._id);
     // Create a new listing
     const newListing = new this.listingModel({
       ...createListingDto,
-      seller: seller._id
+      seller: seller._id,
+      state: 'active',
     });
 
     return await newListing.save();

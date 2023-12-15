@@ -16,6 +16,12 @@ export class User {
   @Prop({ required: true })
   password: string;
 
+  @Prop({
+    default: Date.now, // Sets the default value to the current date and time
+    immutable: true,  // Makes the field non-editable after document creation
+  })
+  date: Date; // Date when the user joined localmart
+
   // TODO think about using roles!!
 /*
   @Prop()
