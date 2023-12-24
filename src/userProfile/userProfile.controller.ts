@@ -101,11 +101,8 @@ export class UserProfileController {
     const protocol = req.headers['x-forwarded-proto'] || req.protocol || 'http'; 
     const host = req.headers['host'] || req.get('host') || 'localhost:3000';
 
-    console.log('protocol: ', protocol);
     // Process the files, store them, and get their URLs
     const imageUrl =  `${protocol}://${host}/uploads/${file.filename}`;
-    console.log('Generated File URL:', imageUrl);
-
 
     const updatedProfile = await this.userProfileService.createOrUpdateProfileWithImage(userId, imageUrl);
     return { profile: updatedProfile };

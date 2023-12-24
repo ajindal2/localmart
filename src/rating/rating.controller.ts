@@ -34,9 +34,8 @@ export class RatingController {
   }
 
   @Get('seller/:sellerId')
-  async getRatingsBySellerId(@Param('sellerId') sellerId: string) {
-    console.log('Request reached getRatingsBySellerId controller');
-    const result = await this.ratingService.findRatingsBySellerId(sellerId);
+  async getRatingsWithProfilesBySellerId(@Param('sellerId') sellerId: string) {
+    const result = await this.ratingService.findRatingsWithProfilesBySellerId(sellerId);
     return result;
   }
 
