@@ -1,7 +1,22 @@
-import { IsNotEmpty, IsOptional, IsString, IsMongoId } from 'class-validator';
-import * as mongoose from 'mongoose';
-import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { HydratedDocument, Document, Types  } from 'mongoose';
+import { IsNotEmpty, IsOptional, IsString, IsMongoId, IsArray, ArrayMinSize, IsEnum, ValidateNested, ValidateIf, IsNumber } from 'class-validator';
+import { Type } from 'class-transformer';
+
+export class LocationDTO {
+  @IsEnum(['Point', 'ZipCode'])
+  type: string;
+
+  @IsArray()
+  @IsOptional()
+  coordinates?: number[];
+
+  @IsString()
+  @IsOptional()
+  postalCode?: string;
+
+  @IsString()
+  @IsOptional()
+  city?: string;
+}
 
 export class CreateUserProfileDTO {
 
@@ -16,4 +31,9 @@ export class CreateUserProfileDTO {
   @IsString()
   @IsOptional()
   aboutMe?: string;
+
+  @ValidateNested()
+  @Type(() => LocationDTO)
+  @IsOptional()
+  location?: LocationDTO;
 }

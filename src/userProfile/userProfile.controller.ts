@@ -22,21 +22,26 @@ export class UserProfileController {
     return this.userProfileService.createUserProfile(createUserProfileDto);
   }
 
-  @Get(':userId')
+  @Get('/:userId')
   async getUserProfile(@Param('userId') userId: string) {    
     return this.userProfileService.getUserProfile(userId);
   }
 
+  @Get('/:userId/location')
+  async getUserLocation(@Param('userId') userId: string) {
+    return await this.userProfileService.getUserLocation(userId);
+  }
+
   // Will use this endpoint to createOrUpdate UserProfile.
   @UseGuards(JwtAuthGuard)
-  @Put(':userId')
+  @Put('/:userId')
   @UsePipes(new ValidationPipe({ transform: true }))
   async updateUserProfile(@Param('userId') userId: string, @Body() updateUserProfileDto: UpdateUserProfileDTO) {
     return this.userProfileService.createOrUpdateProfile(userId, updateUserProfileDto);
   }
 
-  @Delete(':userId')
-  @UseGuards(JwtAuthGuard)
+  @Delete('/:userId')
+  //@UseGuards(JwtAuthGuard)
   async deleteUserProfile(@Param('userId') userId: string) {
     await this.userProfileService.deleteUserProfile(userId);
   }

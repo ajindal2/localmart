@@ -15,8 +15,44 @@ export class UserProfile {
     @Prop() // Optional
     aboutMe: string;
 
-    // Ratings they gave - think. Mybe there should be a ratings schema having giver and receiver id's and this mapping is not needed.
-    // Location
+    @Prop({
+        type: {
+          type: String,
+          enum: ['Point', 'ZipCode'],
+          required: true
+        },
+        coordinates: {
+          type: [Number], // [longitude, latitude]
+          validate: {
+            validator: function(v) {
+              return this.location.type === 'Point' ? Array.isArray(v) && v.length === 2 : true;
+            },
+            message: 'Coordinates must be an array of two numbers'
+          }
+        },
+        postalCode: {
+          type: String,
+          validate: {
+            validator: function(v) {
+              return this.location.type === 'ZipCode' ? /^\d{5}(-\d{4})?$/.test(v) : true;
+            },
+            message: 'Invalid postal code format'
+          }
+        },
+        city: String
+      })
+      location: {
+        type: string;
+        coordinates?: number[];
+        postalCode?: string;
+        city?: string;
+      };
 }
 
 export const UserProfileSchema = SchemaFactory.createForClass(UserProfile);
+
+// Define the conditional index after the schema is created
+UserProfileSchema.index(
+  { 'location.coordinates': '2dsphere' }, 
+  { partialFilterExpression: { 'location.type': 'Point' } }
+);

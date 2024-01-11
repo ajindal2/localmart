@@ -33,6 +33,17 @@ export class UserProfileService {
     return userProfile;
   }
 
+  async getUserLocation(userId: string) {
+    const objectId = new mongoose.Types.ObjectId(userId);
+    const userProfile = await this.userProfileModel.findOne({ userId: objectId  });
+    if (!userProfile) {
+      console.log('User profile not found to fetch user location ');
+      // Impotant to thro thsi exception since it is a 404 and we are checking for 404 in the FE
+      throw new NotFoundException('User profile not found');
+    }
+    return userProfile.location || null;
+  }
+
   async deleteUserProfile(userId: string): Promise<void> {
     const objectId = new mongoose.Types.ObjectId(userId);
     const result = await this.userProfileModel.deleteOne({ userId: objectId });
@@ -52,24 +63,22 @@ export class UserProfileService {
             userId: new Types.ObjectId(userId),
         };
 
-        /*if (updateUserProfileDto.profilePicture) {
-            newUserProfileData.profilePicture = updateUserProfileDto.profilePicture; // Only set if imageUrl is provided
-        }*/
-        
-        if(updateUserProfileDto.aboutMe) {
+        if(updateUserProfileDto.aboutMe !== undefined) {
             newUserProfileData.aboutMe = updateUserProfileDto.aboutMe;
+        }
+        if(updateUserProfileDto.location !== undefined) {
+          newUserProfileData.location = updateUserProfileDto.location;
         }
         const newUserProfile = new this.userProfileModel(newUserProfileData);
         userProfile = await newUserProfile.save();
     } else {
-
         // If the user profile exists, update it
-       /* if (updateUserProfileDto.profilePicture) {
-            userProfile.profilePicture = updateUserProfileDto.profilePicture;
-        }*/
-        if(updateUserProfileDto.aboutMe) {
+        if(updateUserProfileDto.aboutMe !== undefined) {
             userProfile.aboutMe = updateUserProfileDto.aboutMe;
         }
+        if(updateUserProfileDto.location !== undefined) {
+          userProfile.location = updateUserProfileDto.location;
+      }
         userProfile = await userProfile.save();
       }
   
