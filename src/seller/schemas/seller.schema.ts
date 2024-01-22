@@ -1,15 +1,17 @@
 import * as mongoose from 'mongoose';
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { HydratedDocument, Document, Types  } from 'mongoose';
+import { LocationSchema } from 'src/shared/location.schema';
 
 export type SellerDocument = HydratedDocument<Seller>;
 
 @Schema()
 export class Seller {
     @Prop({ type: mongoose.Schema.Types.ObjectId, ref: 'User' })
-    user: Types.ObjectId; // Reference to the User schema
+    userId: Types.ObjectId; // Reference to the User schema
   
-    // PickUp location
+    @Prop({ type: LocationSchema })
+    location: typeof LocationSchema;
 }
 
 export const SellerSchema = SchemaFactory.createForClass(Seller);

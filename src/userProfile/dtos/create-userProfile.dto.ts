@@ -1,22 +1,6 @@
 import { IsNotEmpty, IsOptional, IsString, IsMongoId, IsArray, ArrayMinSize, IsEnum, ValidateNested, ValidateIf, IsNumber } from 'class-validator';
 import { Type } from 'class-transformer';
-
-export class LocationDTO {
-  @IsEnum(['Point', 'ZipCode'])
-  type: string;
-
-  @IsArray()
-  @IsOptional()
-  coordinates?: number[];
-
-  @IsString()
-  @IsOptional()
-  postalCode?: string;
-
-  @IsString()
-  @IsOptional()
-  city?: string;
-}
+import { LocationDTO } from 'src/shared/location.dto';
 
 export class CreateUserProfileDTO {
 

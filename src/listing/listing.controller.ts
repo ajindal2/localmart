@@ -90,7 +90,3 @@ export class ListingController {
     return listing;
   }
 }
-
-/**
- * 1. Add validations
- */

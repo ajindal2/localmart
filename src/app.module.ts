@@ -10,6 +10,7 @@ import { SellerModule } from './seller/seller.module';
 import { UserProfileModule } from './userProfile/userProfile.module';
 import { RatingModule } from './rating/rating.module';
 import { SavedListingModule } from './saved-listing/saved-listing.module';
+import { SharedModule } from './shared/shared.module';
 
 // TODO add authentication. Ask "Can you give step by steps details on how to setup and start my mongodb server?"
 @Module({
@@ -28,6 +29,7 @@ import { SavedListingModule } from './saved-listing/saved-listing.module';
     UserProfileModule,
     RatingModule,
     SavedListingModule,
+    SharedModule,
   ],
   controllers: [AppController],
   providers: [AppService],

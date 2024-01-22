@@ -48,7 +48,7 @@ export class RatingService {
     }
 
     // Step 1: Retrieve ratings and populate 'ratedBy' field
-    const ratings = await this.ratingModel.find({ ratedUser: seller.user })
+    const ratings = await this.ratingModel.find({ ratedUser: seller.userId })
                                           .populate('ratedBy', 'userName')
                                           .populate('ratedUser', 'userName')
                                           .exec();
@@ -78,7 +78,7 @@ export class RatingService {
     });
   
     // Step 4: Fetch the UserProfile of the seller
-    const sellerProfile = await this.userProfileModel.findOne({ userId: seller.user });
+    const sellerProfile = await this.userProfileModel.findOne({ userId: seller.userId });
 
     return { averageRating, ratingsWithProfile, sellerProfile };
   }

@@ -1,6 +1,7 @@
 import * as mongoose from 'mongoose';
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { HydratedDocument, Types  } from 'mongoose';
+import { LocationSchema } from '../../shared/location.schema';
 
 export type ListingDocument = HydratedDocument<Listing>;
 
@@ -24,12 +25,11 @@ export class Listing {
           message: props => `${props.value} must be an array with at least one image URL`
         },
         required: true
-      })
-      imageUrls: string[]; // URLs to the images
-    
+    })
+    imageUrls: string[]; // URLs to the images
     
     @Prop({ type: mongoose.Schema.Types.ObjectId, ref: 'Seller' })
-    seller: Types.ObjectId;
+    sellerId: Types.ObjectId;
 
     @Prop({
       required: true,
@@ -41,7 +41,8 @@ export class Listing {
     @Prop({ default: Date.now })
     dateCreated: Date; // Date when the listing was created
     
-    // Location: User should be able to give a location  (zip code or get my location) to every listing. By default, its the location in userprofile.
-}
+    @Prop({ type: LocationSchema })
+    location: typeof LocationSchema;
+  }
 
 export const ListingSchema = SchemaFactory.createForClass(Listing);

@@ -1,4 +1,6 @@
-import { IsString, IsNumber, IsOptional, IsNotEmpty, IsMongoId, IsArray, ArrayNotEmpty, IsIn } from 'class-validator';
+import { Type } from 'class-transformer';
+import { IsString, IsNumber, IsOptional, IsNotEmpty, IsMongoId, IsArray, ArrayNotEmpty, IsIn, ValidateNested } from 'class-validator';
+import { LocationDTO } from 'src/shared/location.dto';
 
 export class CreateListingDTO {
     @IsNotEmpty()
@@ -25,4 +27,8 @@ export class CreateListingDTO {
     @IsNotEmpty()
     @IsIn(['active', 'archive', 'sold'])
     state: string; // State of the listing
+
+    @ValidateNested()
+    @Type(() => LocationDTO)
+    location: LocationDTO; // Location is required
   }
