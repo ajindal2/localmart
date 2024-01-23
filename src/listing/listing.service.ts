@@ -15,8 +15,10 @@ export class ListingService {
     @InjectModel(Seller.name) private readonly sellerModel: Model<Seller>
     ) { }
 
-  async getFilteredListings(queryListingDTO: QueryListingDTO ): Promise<Listing[]> {
-    const { title } = queryListingDTO;
+  /*async getFilteredListings(queryListingDTO: QueryListingDTO ): Promise<Listing[]> {
+    const { location, title } = queryListingDTO;
+
+    // TODO optimize this. TODO Edge Case: When location is not provided, or if it lacks latitude or longitude, the service defaults to not using the location query. It gracefully handles cases where location data might be incomplete or missing.
     let listings = await this.getAllListings();
 
     if (title) {
@@ -26,11 +28,51 @@ export class ListingService {
       );
     }
 
-    /*if (category) {
-      listings = listings.filter(listing => listing.category === category)
-    }*/
+    let locationQuery = {};
 
+    if (location && location.latitude && location.longitude) {
+      locationQuery = {
+        'location.coordinates': {
+          $near: {
+            $geometry: { type: 'Point', coordinates: [location.longitude, location.latitude] },
+            ...(location.maxDistance && { $maxDistance: location.maxDistance })
+          }
+        }
+      };
+      return this.listingModel.find({
+        ...locationQuery,
+      }).exec();
+    }
     return listings;
+  }*/
+
+  async getFilteredListings(query: QueryListingDTO): Promise<Listing[]> {
+    const { title, location } = query;
+
+    let queryConditions = {};
+
+    // Text search
+    if (title) {
+      queryConditions['title'] = { $regex: title, $options: 'i' }; // Case-insensitive search
+    }
+
+    // Geospatial query
+    if (location && location.latitude != null && location.longitude != null) {
+      queryConditions['location.coordinates'] = {
+        $nearSphere: {
+          $geometry: { type: 'Point', coordinates: [location.longitude, location.latitude] },
+          ...(location.maxDistance && { $maxDistance: location.maxDistance })
+        }
+      };
+    }
+
+    try {
+      return await this.listingModel.find(queryConditions).exec();
+    } catch (error) {
+      // Error handling logic
+      console.error('Error fetching listings:', error);
+      throw new Error('Error fetching listings');
+    }
   }
 
   async getAllListings(): Promise<Listing[]> {

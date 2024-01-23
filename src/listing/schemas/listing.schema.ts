@@ -46,3 +46,5 @@ export class Listing {
   }
 
 export const ListingSchema = SchemaFactory.createForClass(Listing);
+
+ListingSchema.index({ title: 'text' });

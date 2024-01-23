@@ -1,4 +1,17 @@
-import { IsOptional, IsNumber, IsString } from 'class-validator';
+// query-listing.dto.ts
+import { IsOptional, IsNumber, IsString, IsLongitude, IsLatitude, ValidateNested } from 'class-validator';
+import { Type } from 'class-transformer';
+
+class LocationQuery {
+  @IsLatitude()
+  latitude?: number;
+
+  @IsLongitude()
+  longitude?: number;
+
+  @IsNumber()
+  maxDistance?: number; // in meters
+}
 
 export class QueryListingDTO {
   @IsOptional()
@@ -10,8 +23,7 @@ export class QueryListingDTO {
   minPrice?: number;
 
   @IsOptional()
-  @IsNumber()
-  maxPrice?: number;
-
-  // Add more query parameters like location, distance
+  @ValidateNested()
+  @Type(() => LocationQuery)
+  location?: LocationQuery;
 }
