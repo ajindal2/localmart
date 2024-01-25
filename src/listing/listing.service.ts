@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { Model } from 'mongoose';
 import { InjectModel } from '@nestjs/mongoose';
 import { Listing } from './schemas/listing.schema';
@@ -7,6 +7,7 @@ import { QueryListingDTO } from './dtos/query-listing.dto';
 import { Seller } from 'src/seller/schemas/seller.schema';
 import { LocationDTO } from 'src/shared/location.dto';
 import axios from 'axios';
+import { UpdateListingDTO } from './dtos/update-listing.dto';
 
 @Injectable()
 export class ListingService {
@@ -90,15 +91,88 @@ export class ListingService {
     return newListing.save();
   }
 
-  async updateListing(id: string, createListingDTO: CreateListingDTO): Promise<Listing> {
+  /*async updateListing(id: string, createListingDTO: CreateListingDTO): Promise<Listing> {
     const updatedListing = await this.listingModel
       .findByIdAndUpdate(id, createListingDTO, { new: true });
     return updatedListing;
+  }*/
+
+  async updateListing(listingId: string, updateListingDto: UpdateListingDTO): Promise<Listing> {
+    // Find the listing by ID
+
+    const listing = await this.listingModel.findById(listingId);
+    if (!listing) {
+      throw new NotFoundException('Listing not found');
+    }
+  
+    // Parse the location data if it's a string
+  let locationData;
+  if (typeof updateListingDto.location === 'string') {
+    try {
+      locationData = JSON.parse(updateListingDto.location);
+    } catch (error) {
+      throw new Error('Invalid location data');
+    }
+  } else {
+    locationData = updateListingDto.location;
   }
 
-  async deleteListing(id: string): Promise<any> {
-    const deletedListing = await this.listingModel.findByIdAndRemove(id);
-    return deletedListing;
+  // Use the parsed location data to update the seller's location if it's different
+  const convertedLocation = this.convertLocationDtoToSchema(locationData);
+  // TODO commenting the logic right now. We will not update seller location if they edit location while diting an already created listing. Will update later
+  /*if (JSON.stringify(seller.location) !== JSON.stringify(convertedLocation)) {
+    seller.location = convertedLocation;
+    await seller.save();
+  }*/
+  
+    // Update listing fields
+    listing.title = updateListingDto.title;
+    listing.description = updateListingDto.description;
+    listing.price = updateListingDto.price;
+    listing.imageUrls = updateListingDto.imageUrls; // Assuming new images are provided
+    listing.location = convertedLocation; // Or handle location update logic
+
+    if (locationData && locationData.postalCode && !locationData.coordinates) {
+      // Only ZIP code provided, fetch coordinates and city from Google API
+      const isValidZipcode = await this.isZipcodeValid(locationData.postalCode);
+      if (!isValidZipcode) {
+        throw new Error('Invalid ZIP code');
+      }
+  
+      // Fetch full location details based on the ZIP code
+      const fullLocationData = await this.fetchLocationFromZipcode(locationData.postalCode);
+      listing.location = fullLocationData;
+    }
+  
+    // Save the updated listing
+    return await listing.save();
+  }
+
+  async findListingsByUser(userId: string): Promise<Listing[]> {
+    // Find the sellerId for the given userId
+    const seller = await this.sellerModel.findOne({ userId }).exec();
+    if (!seller) {
+      // TODO would want to show a page saying No listings yet.
+      throw new NotFoundException(`Seller with userId "${userId}" not found`);
+    }
+    return this.listingModel.find({ sellerId: seller._id }).exec();
+  }
+
+  async deleteListing(listingId: string): Promise<void> {
+    const result = await this.listingModel.deleteOne({ _id: listingId }).exec();
+    if (result.deletedCount === 0) {
+      throw new NotFoundException(`Listing with ID "${listingId}" not found`);
+    }
+  }
+
+  // Update the status of a listing
+  async updateListingStatus(listingId: string, newStatus: 'active' | 'delete' | 'sold'): Promise<Listing> {
+    const listing = await this.listingModel.findById(listingId);
+    if (!listing) {
+      throw new NotFoundException(`Listing with ID "${listingId}" not found`);
+    }
+    listing.state = newStatus;
+    return listing.save();
   }
 
 /*async createListing(userId: string, createListingDto: CreateListingDTO): Promise<Listing> {
@@ -182,7 +256,7 @@ async createListing(userId: string, createListingDto: CreateListingDTO): Promise
   // Create a new listing
   const newListing = new this.listingModel({
     ...createListingDto,
-    seller: seller._id,
+    sellerId: seller._id,
     state: 'active',
     location: convertedLocation
   });

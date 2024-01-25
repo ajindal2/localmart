@@ -33,7 +33,7 @@ export class Listing {
 
     @Prop({
       required: true,
-      enum: ['active', 'archive', 'sold'],
+      enum: ['active', 'delete', 'sold'],
       default: 'active'
     })
     state: string;

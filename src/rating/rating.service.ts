@@ -70,7 +70,6 @@ export class RatingService {
   
     const ratingsWithProfile = ratings.map(rating => {
       const userProfile = userProfiles.find(profile => profile.userId.equals(rating.ratedBy._id));
-      console.log('profilePicture: ', userProfile.profilePicture);
       return {
         ...rating.toObject(), // Convert the Mongoose document to a plain object
         ratedByProfilePicture: userProfile?.profilePicture,

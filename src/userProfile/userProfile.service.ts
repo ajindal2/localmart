@@ -158,7 +158,6 @@ export class UserProfileService {
   async createOrUpdateProfileWithImage(userId: string, imageUrl: string): Promise<UserProfile> {
     const objectId = new mongoose.Types.ObjectId(userId);
     let userProfile = await this.userProfileModel.findOne({ userId: objectId });
-    console.error("image upload request for userId: ", userId);
 
     if (!userProfile) {
         // Define newUserProfileData with the UserProfile type
