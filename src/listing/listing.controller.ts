@@ -123,14 +123,6 @@ export class ListingController {
     return this.listingService.updateListing(id, updateListingDto);
   }
 
-
-  /*@Put('/:id')
-  async updateListing(@Param('id') id: string, @Body() createListingDTO: CreateListingDTO) {
-    const listing = await this.listingService.updateListing(id, createListingDTO);
-    if (!listing) throw new NotFoundException('Listing does not exist!');
-    return listing;
-  }*/
-
   // Get listings for a specific user
   @Get('/user/:userId')
   async findListingsByUser(@Param('userId') userId: string) {

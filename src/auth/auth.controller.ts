@@ -1,4 +1,4 @@
-import { Controller, Post, Body, Res, HttpStatus, UseGuards, Request, Req } from '@nestjs/common';
+import { Controller, Post, Body, Res, HttpStatus, UseGuards, Request, Req, UsePipes, ValidationPipe, BadRequestException } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { UserService } from 'src/user/user.service';
 import { CreateUserDTO } from 'src/user/dtos/create-user.dto';
@@ -31,9 +31,23 @@ export class AuthController {
   }*/
 
   @Post('/register')
+  @UsePipes(new ValidationPipe({
+    transform: true,
+    exceptionFactory: (errors) => {
+      const formattedErrors = errors.reduce((acc, err) => {
+        acc[err.property] = Object.values(err.constraints)[0]; // Taking the first error message for each field
+        return acc;
+      }, {});
+      throw new BadRequestException({ errors: formattedErrors });
+    }
+  }))
   async register(@Body() createUserDTO: CreateUserDTO) {
-    const user = await this.userService.createUser(createUserDTO);
-    return user;
+    try {
+      const user = await this.userService.createUser(createUserDTO);
+      return user;
+    } catch (error) {
+      throw new BadRequestException(error.message);
+    }
   }
 
   @Post('/refresh')
