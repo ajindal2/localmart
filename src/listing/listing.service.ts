@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, InternalServerErrorException, NotFoundException } from '@nestjs/common';
 import { Model } from 'mongoose';
 import { InjectModel } from '@nestjs/mongoose';
 import { Listing } from './schemas/listing.schema';
@@ -68,17 +68,58 @@ export class ListingService {
     }
 
     try {
-      return await this.listingModel.find(queryConditions).exec();
+      const listings = await this.listingModel.find(queryConditions).exec();
+      if (!listings) {
+        throw new NotFoundException('No listings found matching the criteria');
+      }
+      return listings;
     } catch (error) {
-      // Error handling logic
       console.error('Error fetching listings:', error);
-      throw new Error('Error fetching listings');
+      if (error.name === 'ValidationError') {
+        throw new BadRequestException('DB validation failed');
+      } else {
+        throw new InternalServerErrorException('An unexpected error occurred');
+      }
     }
   }
 
   async getAllListings(): Promise<Listing[]> {
-    const listings = await this.listingModel.find().exec();
+    try {
+      const listings = await this.listingModel.find().exec();
+      if (!listings) {
+        throw new NotFoundException('No listings found matching the criteria');
+      }
+      return listings;
+    } catch (error) {
+      console.error('Error fetching listings:', error);
+      if (error.name === 'ValidationError') {
+        throw new BadRequestException('DB Validation failed');
+      } else {
+        throw new InternalServerErrorException('An unexpected error occurred');
+      }
+    }
+  }
+
+  async findListingsByUser(userId: string): Promise<Listing[]> {
+    try {
+    // Find the sellerId for the given userId
+    const seller = await this.sellerModel.findOne({ userId }).exec();
+    if (!seller) {
+      throw new NotFoundException(`Seller with userId "${userId}" not found`);
+    }
+    const listings = await this.listingModel.find({ sellerId: seller._id }).exec();
+    if (!listings) {
+      throw new NotFoundException(`No listings found for seller "${seller._id}" `);
+    }
     return listings;
+  } catch (error) {
+    console.error(`Error fetching listings for userId ${userId}:`, error);
+      if (error.name === 'ValidationError') {
+        throw new BadRequestException('DB Validation failed');
+      } else {
+        throw new InternalServerErrorException('An unexpected error occurred');
+      }
+    }
   }
 
   async getListing(id: string): Promise<Listing> {
@@ -146,16 +187,6 @@ export class ListingService {
   
     // Save the updated listing
     return await listing.save();
-  }
-
-  async findListingsByUser(userId: string): Promise<Listing[]> {
-    // Find the sellerId for the given userId
-    const seller = await this.sellerModel.findOne({ userId }).exec();
-    if (!seller) {
-      // TODO would want to show a page saying No listings yet.
-      throw new NotFoundException(`Seller with userId "${userId}" not found`);
-    }
-    return this.listingModel.find({ sellerId: seller._id }).exec();
   }
 
   async deleteListing(listingId: string): Promise<void> {

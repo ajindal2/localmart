@@ -46,7 +46,7 @@ export class AuthController {
       const user = await this.userService.createUser(createUserDTO);
       return user;
     } catch (error) {
-      throw new BadRequestException(error.message);
+      throw new BadRequestException('Error processing your request');
     }
   }
 

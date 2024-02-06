@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, InternalServerErrorException, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import { UserProfile } from './schemas/userProfile.schema';
@@ -27,12 +27,21 @@ export class UserProfileService {
   }
 
   async getUserProfile(userId: string): Promise<UserProfile> {
-    const objectId = new mongoose.Types.ObjectId(userId);
-    const userProfile = await this.userProfileModel.findOne({ userId: objectId });
-    if (!userProfile) {
-      throw new NotFoundException(`UserProfile with user ID ${userId} not found`);
+    try {
+      const objectId = new mongoose.Types.ObjectId(userId);
+      const userProfile = await this.userProfileModel.findOne({ userId: objectId });
+      if (!userProfile) {
+        throw new NotFoundException(`UserProfile with user ID ${userId} not found`);
+      }
+      return userProfile;
+    } catch (error) {
+      console.error(`Error fetching user profile for userId ${userId}`, error);
+      if (error.name === 'ValidationError') {
+        throw new BadRequestException('DB Validation failed');
+      } else {
+        throw new InternalServerErrorException('An unexpected error occurred');
+      }
     }
-    return userProfile;
   }
 
   async getUserLocation(userId: string) {

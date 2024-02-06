@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, InternalServerErrorException, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { Rating } from './schemas/rating.schema';
@@ -37,52 +37,68 @@ export class RatingService {
 
   // TODO think if the return type of this should be defined by an interface.
   async findRatingsWithProfilesBySellerId(sellerId: string) {
+    try {
+      if (!sellerId) {
+        throw new NotFoundException('Seller ID is required.');
+      }
+      // Fetch the userId from the sellerId
+      const seller = await this.sellerModel.findById(sellerId).exec();
+      if (!seller) {
+        throw new NotFoundException('SellerId not found: ', sellerId);
+      }
 
-    if (!sellerId) {
-      throw new NotFoundException('Seller ID is required.');
-    }
-    // Fetch the userId from the sellerId
-    const seller = await this.sellerModel.findById(sellerId).exec();
-    if (!seller) {
-      throw new Error('Seller not found');
-    }
+      // Step 1: Retrieve ratings and populate 'ratedBy' field
+      const ratings = await this.ratingModel.find({ ratedUser: seller.userId })
+                                            .populate('ratedBy', 'userName')
+                                            .populate('ratedUser', 'userName')
+                                            .exec();
+    
+      // Step 2: Fetch the UserProfile of the seller
+      const sellerProfile = await this.userProfileModel.findOne({ userId: seller.userId })
+      .populate({
+        path: 'userId',
+        select: 'userName', // Only fetch the userName field
+      })
+      .exec();
+      
 
-    // Step 1: Retrieve ratings and populate 'ratedBy' field
-    const ratings = await this.ratingModel.find({ ratedUser: seller.userId })
-                                          .populate('ratedBy', 'userName')
-                                          .populate('ratedUser', 'userName')
-                                          .exec();
-  
-    if (!ratings || ratings.length === 0) {
-      // Handle the case where no ratings are found
-      return { averageRating: 0, ratingsWithProfile: [], sellerProfile: null };
-    }
-  
-    // Step 2: Compute Average Rating
-    const sum = ratings.reduce((acc, rating) => acc + rating.stars, 0);
-    const averageRating = sum / ratings.length;
-  
-    // Extract user IDs for profile lookup
-    const userIds = ratings.map(rating => rating.ratedBy._id);
-  
-    // Step 3: Fetch UserProfiles based on userIds and map ratings
-    const userProfiles = await this.userProfileModel.find({ userId: { $in: userIds } });
-  
-    const ratingsWithProfile = ratings.map(rating => {
-      const userProfile = userProfiles.find(profile => profile.userId.equals(rating.ratedBy._id));
-      return {
-        ...rating.toObject(), // Convert the Mongoose document to a plain object
-        ratedByProfilePicture: userProfile?.profilePicture,
-      };
-    });
-  
-    // Step 4: Fetch the UserProfile of the seller
-    const sellerProfile = await this.userProfileModel.findOne({ userId: seller.userId });
+      if (!sellerProfile) {
+        throw new NotFoundException('Seller profile not found for sellerId', sellerId);
+      }
 
-    return { averageRating, ratingsWithProfile, sellerProfile };
+      if (!ratings || ratings.length === 0) {
+        // Handle the case where no ratings are found
+        return { averageRating: 0, ratingsWithProfile: [], sellerProfile };
+      }
+    
+      // Step 3: Compute Average Rating
+      const sum = ratings.reduce((acc, rating) => acc + rating.stars, 0);
+      const averageRating = sum / ratings.length;
+    
+      // Extract user IDs for profile lookup
+      const userIds = ratings.map(rating => rating.ratedBy._id);
+    
+      // Step 4: Fetch UserProfiles based on userIds and map ratings
+      const userProfiles = await this.userProfileModel.find({ userId: { $in: userIds } });
+    
+      const ratingsWithProfile = ratings.map(rating => {
+        const userProfile = userProfiles.find(profile => profile.userId.equals(rating.ratedBy._id));
+        return {
+          ...rating.toObject(), // Convert the Mongoose document to a plain object
+          ratedByProfilePicture: userProfile?.profilePicture,
+        };
+      });
+
+      return { averageRating, ratingsWithProfile, sellerProfile };
+    } catch (error) {
+      console.error('Error fetching ratings with profiles:', error);
+      if (error.name === 'ValidationError') {
+        throw new BadRequestException('Database validation failed in fetching ratings with profiles.');
+      } else {
+        throw new InternalServerErrorException('An unexpected error occurred in fetching ratings with profiles');
+      }
+    }
   }
-  
-
   
   /*async findRatingsBySellerId(sellerId: string): Promise<{averageRating: number, ratings: Rating[]}> {
     if (!sellerId) {
