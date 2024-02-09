@@ -10,7 +10,8 @@ import { SellerModule } from './seller/seller.module';
 import { UserProfileModule } from './userProfile/userProfile.module';
 import { RatingModule } from './rating/rating.module';
 import { SavedListingModule } from './saved-listing/saved-listing.module';
-import { SharedModule } from './shared/shared.module';
+import { LocationModule } from './location/location.module';
+import { CacheModule } from './cache/cache.module';
 
 // TODO add authentication. Ask "Can you give step by steps details on how to setup and start my mongodb server?"
 @Module({
@@ -29,7 +30,8 @@ import { SharedModule } from './shared/shared.module';
     UserProfileModule,
     RatingModule,
     SavedListingModule,
-    SharedModule,
+    LocationModule,
+    CacheModule,
   ],
   controllers: [AppController],
   providers: [AppService],

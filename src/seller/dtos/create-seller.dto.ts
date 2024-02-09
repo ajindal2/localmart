@@ -1,6 +1,6 @@
 import { Type } from 'class-transformer';
 import { IsMongoId, IsNotEmpty, IsOptional, ValidateNested } from 'class-validator';
-import { LocationDTO } from 'src/shared/location.dto';
+import { LocationDTO } from 'src/location/dtos/location.dto';
 
 export class CreateSellerDTO {
   @IsMongoId()

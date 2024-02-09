@@ -1,4 +1,3 @@
-// src/shared/schemas/location.schema.ts
 import * as mongoose from 'mongoose';
 
 const PointSchema = new mongoose.Schema({
@@ -26,6 +25,7 @@ export const LocationSchema = new mongoose.Schema({
     required: false // Not required initially as it might be populated later
   },
   city: { type: String, required: false },
+  state: { type: String, required: false }, 
   postalCode: { type: String, required: false, 
     validate: {
       validator: function(v) {

@@ -1,6 +1,6 @@
 import { IsNotEmpty, IsOptional, IsString, IsMongoId, IsArray, ArrayMinSize, IsEnum, ValidateNested, ValidateIf, IsNumber } from 'class-validator';
 import { Type } from 'class-transformer';
-import { LocationDTO } from 'src/shared/location.dto';
+import { LocationDTO } from 'src/location/dtos/location.dto';
 
 export class CreateUserProfileDTO {
 

@@ -16,6 +16,10 @@ export class LocationDTO {
 
     @IsString()
     @IsOptional()
+    state?: string;
+
+    @IsString()
+    @IsOptional()
     postalCode?: string;
 
     @IsArray()

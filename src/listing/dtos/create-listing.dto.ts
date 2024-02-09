@@ -1,6 +1,6 @@
 import { Type } from 'class-transformer';
 import { IsString, IsNumber, IsOptional, IsNotEmpty, IsMongoId, IsArray, ArrayNotEmpty, IsIn, ValidateNested } from 'class-validator';
-import { LocationDTO } from 'src/shared/location.dto';
+import { LocationDTO } from 'src/location/dtos/location.dto';
 
 export class CreateListingDTO {
     @IsNotEmpty()

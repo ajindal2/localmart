@@ -4,10 +4,8 @@ import { Model, Types } from 'mongoose';
 import { UserProfile } from './schemas/userProfile.schema';
 import { CreateUserProfileDTO } from './dtos/create-userProfile.dto';
 import { UpdateUserProfileDTO } from './dtos/update-userProfile.dto';
-import * as multer from 'multer';
 import mongoose from 'mongoose';
-import { LocationDTO } from 'src/shared/location.dto';
-import axios from 'axios';
+import { LocationDTO } from 'src/location/dtos/location.dto';
 
 @Injectable()
 export class UserProfileService {
@@ -64,37 +62,34 @@ export class UserProfileService {
   }
 
   async createOrUpdateProfile(userId: string, updateUserProfileDto: UpdateUserProfileDTO): Promise<UserProfile> {
-    const objectId = new Types.ObjectId(userId);
-    let userProfile = await this.userProfileModel.findOne({ userId: objectId });
+    try {
+      const objectId = new Types.ObjectId(userId);
+      let userProfile = await this.userProfileModel.findOne({ userId: objectId });
 
-    if (!userProfile) {
-      // Handling creation of new UserProfile
-      userProfile = new this.userProfileModel({ userId: objectId });
-    }
+      if (!userProfile) {
+        // Handling creation of new UserProfile
+        userProfile = new this.userProfileModel({ userId: objectId });
+      }
 
-    // Update fields other than location...
-    if(updateUserProfileDto.aboutMe !== undefined) {
-      userProfile.aboutMe = updateUserProfileDto.aboutMe;
-    }
+      // Update fields other than location...
+      if(updateUserProfileDto.aboutMe !== undefined) {
+        userProfile.aboutMe = updateUserProfileDto.aboutMe;
+      }
 
-    // Handle location update
-    if(updateUserProfileDto.location) {
-      if(updateUserProfileDto.location.postalCode && !updateUserProfileDto.location.coordinates) {
-        // Only ZIP code provided, fetch coordinates and city from Google API
-        const isValidZipcode = await this.isZipcodeValid(updateUserProfileDto.location.postalCode);
-        if (!isValidZipcode) {
-          throw new Error('Invalid ZIP code');
-        }
-        const locationData = await this.fetchLocationFromZipcode(updateUserProfileDto.location.postalCode);
-        userProfile.location = locationData;
-      } else {
-        // Directly use provided location data (coordinates and city)
+      // Handle location update
+      if (updateUserProfileDto.location !== undefined) {
         const locationData = this.convertLocationDtoToSchema(updateUserProfileDto.location);
         userProfile.location = locationData;
       }
+      return userProfile.save();
+    } catch (error) {
+      console.error(`Error creating/ updating user profile for userId ${userId}`, error);
+      if (error.name === 'ValidationError') {
+        throw new BadRequestException('DB Validation failed');
+      } else {
+        throw new InternalServerErrorException('An unexpected error occurred');
+      }
     }
-
-    return userProfile.save();
   }
 
   private convertLocationDtoToSchema(locationDto: LocationDTO): any {
@@ -112,56 +107,6 @@ export class UserProfileService {
     }
   
     return location;
-  }
-
-  private async fetchLocationFromZipcode(zipcode: string): Promise<any> {
-    // Google Geocoding API URL
-    const url = `https://maps.googleapis.com/maps/api/geocode/json?address=${zipcode}&key=AIzaSyCjS6WbSux7d1QQcjENuojKTvAzAtH9xn8`;
-
-    try {
-      const response = await axios.get(url);
-      const location = response.data.results[0].geometry.location;
-      const city = response.data.results[0].address_components.find(component => component.types.includes('locality')).long_name;
-
-      return {
-        coordinates: {
-          type: 'Point',
-          coordinates: [location.lng, location.lat]
-        },
-        city: city,
-        postalCode: zipcode
-      };
-    } catch (error) {
-      // Handle error (e.g., log it, return null, or throw an exception)
-      console.error(error);
-      return null;
-    }
-  }
-
-  async isZipcodeValid(zipcode: string): Promise<boolean> {
-    const url = `https://maps.googleapis.com/maps/api/geocode/json?address=${zipcode}&key=AIzaSyCjS6WbSux7d1QQcjENuojKTvAzAtH9xn8`;
-
-    try {
-      const response = await axios.get(url);
-      const results = response.data.results;
-
-      if (results.length === 0) {
-        // No results found for the ZIP code
-        return false;
-      }
-
-      // Check if the response contains a postal_code type in address components
-      const isValid = results.some(result => 
-        result.address_components.some(component => 
-          component.types.includes('postal_code')
-        )
-      );
-
-      return isValid;
-    } catch (error) {
-      console.error('Error validating ZIP code:', error);
-      throw new Error('Error validating ZIP code');
-    }
   }
 
   async createOrUpdateProfileWithImage(userId: string, imageUrl: string): Promise<UserProfile> {

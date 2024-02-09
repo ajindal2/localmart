@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, InternalServerErrorException, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Seller } from './schemas/seller.schema';
 import { Model } from 'mongoose';
@@ -49,28 +49,37 @@ export class SellerService {
   }
 
   async getSellerLocation(userId: string): Promise<any> {
-    // Try to fetch seller's location
-    let seller = await this.sellerModel.findOne({ userId });
-    if (seller && seller.location) {
-      // Return seller's location if it exists
-      return seller.location;
-    }
+    try {
+      // Try to fetch seller's location
+      let seller = await this.sellerModel.findOne({ userId });
+      if (seller && seller.location) {
+        // Return seller's location if it exists
+        return seller.location;
+      }
 
-    // If seller does not exist or location is empty, fetch location from UserProfile
-    const userProfile = await this.userProfileModel.findOne({ userId });
-    const userProfileLocation =  userProfile ? userProfile.location : null;
+      // If seller does not exist or location is empty, fetch location from UserProfile
+      const userProfile = await this.userProfileModel.findOne({ userId });
+      const userProfileLocation =  userProfile ? userProfile.location : null;
 
-    if (!seller) {
-      // If seller is not yet cerated for this user, then create one and set the location from the Userprofile
-      seller = new this.sellerModel({
-        userId: userId,
-        location: userProfileLocation,
-      });
-    } else if (!seller.location) {
-      // If seller exists but location is empty, update from UserProfile
-      seller.location = userProfileLocation;
-      await seller.save();
+      if (!seller) {
+        // If seller is not yet cerated for this user, then create one and set the location from the Userprofile
+        seller = new this.sellerModel({
+          userId: userId,
+          location: userProfileLocation,
+        });
+      } else if (!seller.location) {
+        // If seller exists but location is empty, update from UserProfile
+        seller.location = userProfileLocation;
+        await seller.save();
+      }
+      return userProfileLocation;
+    } catch (error) {
+      console.error(`Error fetching seller location for userId: ${userId}`, error);
+      if (error.name === 'ValidationError') {
+        throw new BadRequestException('DB Validation failed when fetching seller location');
+      } else {
+        throw new InternalServerErrorException('An unexpected error occurred when fetching seller location');
+      }
     }
-    return userProfileLocation;
   }
 }

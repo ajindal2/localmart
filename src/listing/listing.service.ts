@@ -5,7 +5,7 @@ import { Listing } from './schemas/listing.schema';
 import { CreateListingDTO } from './dtos/create-listing.dto';
 import { QueryListingDTO } from './dtos/query-listing.dto';
 import { Seller } from 'src/seller/schemas/seller.schema';
-import { LocationDTO } from 'src/shared/location.dto';
+import { LocationDTO } from 'src/location/dtos/location.dto';
 import axios from 'axios';
 import { UpdateListingDTO } from './dtos/update-listing.dto';
 
@@ -15,37 +15,6 @@ export class ListingService {
     @InjectModel(Listing.name) private readonly listingModel: Model<Listing>,
     @InjectModel(Seller.name) private readonly sellerModel: Model<Seller>
     ) { }
-
-  /*async getFilteredListings(queryListingDTO: QueryListingDTO ): Promise<Listing[]> {
-    const { location, title } = queryListingDTO;
-
-    // TODO optimize this. TODO Edge Case: When location is not provided, or if it lacks latitude or longitude, the service defaults to not using the location query. It gracefully handles cases where location data might be incomplete or missing.
-    let listings = await this.getAllListings();
-
-    if (title) {
-      listings = listings.filter(listing => 
-        listing.title.toLowerCase().includes(title.toLowerCase()) ||
-        listing.description.toLowerCase().includes(title.toLowerCase())
-      );
-    }
-
-    let locationQuery = {};
-
-    if (location && location.latitude && location.longitude) {
-      locationQuery = {
-        'location.coordinates': {
-          $near: {
-            $geometry: { type: 'Point', coordinates: [location.longitude, location.latitude] },
-            ...(location.maxDistance && { $maxDistance: location.maxDistance })
-          }
-        }
-      };
-      return this.listingModel.find({
-        ...locationQuery,
-      }).exec();
-    }
-    return listings;
-  }*/
 
   async getFilteredListings(query: QueryListingDTO): Promise<Listing[]> {
     const { title, location } = query;
@@ -113,7 +82,7 @@ export class ListingService {
     }
     return listings;
   } catch (error) {
-    console.error(`Error fetching listings for userId ${userId}:`, error);
+    console.error(`Error fetching listings for userId ${userId}`, error);
       if (error.name === 'ValidationError') {
         throw new BadRequestException('DB Validation failed');
       } else {
@@ -127,66 +96,66 @@ export class ListingService {
     return listing;
   }
 
-  async addListing(createListingDTO: CreateListingDTO): Promise<Listing> {
-    const newListing = await this.listingModel.create(createListingDTO);
-    return newListing.save();
-  }
-
-  /*async updateListing(id: string, createListingDTO: CreateListingDTO): Promise<Listing> {
-    const updatedListing = await this.listingModel
-      .findByIdAndUpdate(id, createListingDTO, { new: true });
-    return updatedListing;
-  }*/
-
   async updateListing(listingId: string, updateListingDto: UpdateListingDTO): Promise<Listing> {
-    // Find the listing by ID
-
-    const listing = await this.listingModel.findById(listingId);
-    if (!listing) {
-      throw new NotFoundException('Listing not found');
-    }
-  
-    // Parse the location data if it's a string
-  let locationData;
-  if (typeof updateListingDto.location === 'string') {
     try {
-      locationData = JSON.parse(updateListingDto.location);
-    } catch (error) {
-      throw new Error('Invalid location data');
-    }
-  } else {
-    locationData = updateListingDto.location;
-  }
-
-  // Use the parsed location data to update the seller's location if it's different
-  const convertedLocation = this.convertLocationDtoToSchema(locationData);
-  // TODO commenting the logic right now. We will not update seller location if they edit location while diting an already created listing. Will update later
-  /*if (JSON.stringify(seller.location) !== JSON.stringify(convertedLocation)) {
-    seller.location = convertedLocation;
-    await seller.save();
-  }*/
-  
-    // Update listing fields
-    listing.title = updateListingDto.title;
-    listing.description = updateListingDto.description;
-    listing.price = updateListingDto.price;
-    listing.imageUrls = updateListingDto.imageUrls; // Assuming new images are provided
-    listing.location = convertedLocation; // Or handle location update logic
-
-    if (locationData && locationData.postalCode && !locationData.coordinates) {
-      // Only ZIP code provided, fetch coordinates and city from Google API
-      const isValidZipcode = await this.isZipcodeValid(locationData.postalCode);
-      if (!isValidZipcode) {
-        throw new Error('Invalid ZIP code');
+      // Find the listing by ID
+      const listing = await this.listingModel.findById(listingId);
+      if (!listing) {
+        console.log('ListingId not found: ', listingId);
+        throw new NotFoundException('Listing not found');
       }
-  
-      // Fetch full location details based on the ZIP code
-      const fullLocationData = await this.fetchLocationFromZipcode(locationData.postalCode);
-      listing.location = fullLocationData;
+    
+      // Parse the location data if it's a string
+      let locationData;
+      if (typeof updateListingDto.location === 'string') {
+        try {
+          locationData = JSON.parse(updateListingDto.location);
+        } catch (error) {
+          console.log('Invalid location data: ', updateListingDto.location);
+          throw new Error('Invalid location data');
+        }
+      } else {
+        locationData = updateListingDto.location;
+      }
+
+      // Use the parsed location data to update the seller's location if it's different
+      const convertedLocation = this.convertLocationDtoToSchema(locationData);
+      // We will not update seller location if they edit location while diting an already created listing.
+      /*if (JSON.stringify(seller.location) !== JSON.stringify(convertedLocation)) {
+        seller.location = convertedLocation;
+        await seller.save();
+      }*/
+    
+      // Update listing fields
+      listing.title = updateListingDto.title;
+      listing.description = updateListingDto.description;
+      listing.price = updateListingDto.price;
+      listing.imageUrls = updateListingDto.imageUrls; // Assuming new images are provided
+      listing.location = convertedLocation; // Or handle location update logic
+
+      if (locationData && locationData.postalCode && !locationData.coordinates) {
+        // Only ZIP code provided, fetch coordinates and city from Google API
+        const isValidZipcode = await this.isZipcodeValid(locationData.postalCode);
+        if (!isValidZipcode) {
+          console.log('Invalid ZIP code: ', locationData.postalCode);
+          throw new Error('Invalid ZIP code');
+        }
+    
+        // Fetch full location details based on the ZIP code
+        const fullLocationData = await this.fetchLocationFromZipcode(locationData.postalCode);
+        listing.location = fullLocationData;
+      }
+    
+      // Save the updated listing
+      return await listing.save();
+    } catch (error) {
+      console.error(`Error updating listing ${listingId}`, error);
+      if (error.name === 'ValidationError') {
+        throw new BadRequestException('DB validation failed');
+      } else {
+        throw new InternalServerErrorException('An unexpected error occurred');
+      }
     }
-  
-    // Save the updated listing
-    return await listing.save();
   }
 
   async deleteListing(listingId: string): Promise<void> {
@@ -256,60 +225,66 @@ export class ListingService {
 }*/
 
 async createListing(userId: string, createListingDto: CreateListingDTO): Promise<Listing> {
-  console.log('Inside service method of createListing. Logging passed-in userId: ', userId);
-
-  let seller = await this.sellerModel.findOne({ userId: userId });
+  try {
+    let seller = await this.sellerModel.findOne({ userId: userId });
     if (!seller) {
       seller = new this.sellerModel({ userId: userId });
       await seller.save();
     }
-  console.log('Logging sellerId: ', seller._id);
 
-  // Parse the location data if it's a string
-  let locationData;
-  if (typeof createListingDto.location === 'string') {
-    try {
-      locationData = JSON.parse(createListingDto.location);
-    } catch (error) {
-      throw new Error('Invalid location data');
-    }
-  } else {
-    locationData = createListingDto.location;
-  }
-
-  // Use the parsed location data to update the seller's location if it's different
-  const convertedLocation = this.convertLocationDtoToSchema(locationData);
-  if (JSON.stringify(seller.location) !== JSON.stringify(convertedLocation)) {
-    seller.location = convertedLocation;
-    await seller.save();
-  }
-
-  // Create a new listing
-  const newListing = new this.listingModel({
-    ...createListingDto,
-    sellerId: seller._id,
-    state: 'active',
-    location: convertedLocation
-  });
-
-  // Additional logic for handling ZIP code only location
-  if (locationData && locationData.postalCode && !locationData.coordinates) {
-    // Only ZIP code provided, fetch coordinates and city from Google API
-    const isValidZipcode = await this.isZipcodeValid(locationData.postalCode);
-    if (!isValidZipcode) {
-      throw new Error('Invalid ZIP code');
+    // Parse the location data if it's a string
+    let locationData;
+    if (typeof createListingDto.location === 'string') {
+      try {
+        locationData = JSON.parse(createListingDto.location);
+      } catch (error) {
+        console.log('Invalid location data: ', createListingDto.location);
+        throw new Error('Invalid location data');
+      }
+    } else {
+      locationData = createListingDto.location;
     }
 
-    // Fetch full location details based on the ZIP code
-    const fullLocationData = await this.fetchLocationFromZipcode(locationData.postalCode);
-    newListing.location = fullLocationData;
-    seller.location = fullLocationData;
-    await seller.save();
-  }
+    // Use the parsed location data to update the seller's location if it's different
+    const convertedLocation = this.convertLocationDtoToSchema(locationData);
+    if (JSON.stringify(seller.location) !== JSON.stringify(convertedLocation)) {
+      seller.location = convertedLocation;
+      await seller.save();
+    }
 
-  return await newListing.save();
+    // Create a new listing
+    const newListing = new this.listingModel({
+      ...createListingDto,
+      sellerId: seller._id,
+      state: 'active',
+      location: convertedLocation
+    });
+
+    // Additional logic for handling ZIP code only location
+    if (locationData && locationData.postalCode && !locationData.coordinates) {
+      // Only ZIP code provided, fetch coordinates and city from Google API
+      const isValidZipcode = await this.isZipcodeValid(locationData.postalCode);
+      if (!isValidZipcode) {
+        console.log('Invalid ZIP code: ', locationData.postalCode);
+        throw new Error('Invalid ZIP code');
+      }
+
+      // Fetch full location details based on the ZIP code
+      const fullLocationData = await this.fetchLocationFromZipcode(locationData.postalCode);
+      newListing.location = fullLocationData;
+      seller.location = fullLocationData;
+      await seller.save();
+    }
+    return await newListing.save();
+  } catch (error) {
+    console.error(`Error creating listing`, error);
+      if (error.name === 'ValidationError') {
+        throw new BadRequestException('DB validation failed');
+      } else {
+        throw new InternalServerErrorException('An unexpected error occurred');
+      }
+  }
 }
-
 
 private async fetchLocationFromZipcode(zipcode: string): Promise<any> {
   // Google Geocoding API URL
