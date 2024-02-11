@@ -35,6 +35,48 @@ export class RatingService {
     return rating;
   }
 
+  async getRatingsByUser(userId: string) {
+    try {
+      // Step 1: Retrieve ratings and populate 'ratedBy' field
+      const ratings = await this.ratingModel.find({ ratedUser: userId })
+      .populate('ratedBy', 'userName')
+      .populate('ratedUser', 'userName')
+      .exec();
+
+      if (!ratings || ratings.length === 0) {
+        // Handle the case where no ratings are found
+        return { averageRating: 0, ratingsWithProfile: [] };
+      }
+
+      // Step 3: Compute Average Rating
+      const sum = ratings.reduce((acc, rating) => acc + rating.stars, 0);
+      const averageRating = sum / ratings.length;
+    
+      // Extract user IDs for profile lookup
+      const userIds = ratings.map(rating => rating.ratedBy._id);
+    
+      // Step 4: Fetch UserProfiles based on userIds and map ratings
+      const userProfiles = await this.userProfileModel.find({ userId: { $in: userIds } });
+    
+      const ratingsWithProfile = ratings.map(rating => {
+        const userProfile = userProfiles.find(profile => profile.userId.equals(rating.ratedBy._id));
+        return {
+          ...rating.toObject(), // Convert the Mongoose document to a plain object
+          ratedByProfilePicture: userProfile?.profilePicture,
+        };
+      });
+
+      return { averageRating, ratingsWithProfile };
+    } catch (error) {
+        console.error('Error fetching ratings for userId:', userId);
+        if (error.name === 'ValidationError') {
+          throw new BadRequestException('Database validation failed in fetching ratings with profiles.');
+        } else {
+          throw new InternalServerErrorException('An unexpected error occurred in fetching ratings for the user');
+        }
+    }
+  }
+
   // TODO think if the return type of this should be defined by an interface.
   async findRatingsWithProfilesBySellerId(sellerId: string) {
     try {
@@ -57,7 +99,7 @@ export class RatingService {
       const sellerProfile = await this.userProfileModel.findOne({ userId: seller.userId })
       .populate({
         path: 'userId',
-        select: 'userName', // Only fetch the userName field
+        select: 'userName date', // Only fetch the userName field
       })
       .exec();
       

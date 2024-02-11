@@ -18,36 +18,51 @@ export class ListingService {
 
   async getFilteredListings(query: QueryListingDTO): Promise<Listing[]> {
     const { title, location } = query;
+    let queryConditions = { status: { $ne: 'Sold' } }; // Exclude 'Sold' listings
 
-    let queryConditions = {};
-
-    // Text search
+    // Fuzzy text search for title
     if (title) {
       queryConditions['title'] = { $regex: title, $options: 'i' }; // Case-insensitive search
     }
 
     // Geospatial query
     if (location && location.latitude != null && location.longitude != null) {
-      queryConditions['location.coordinates'] = {
+      const near: GeoJSONPoint = {
+        type: "Point",
+        coordinates: [location.longitude, location.latitude]
+      };
+
+      const pipeline = [
+        {
+          $geoNear: {
+            near,
+            distanceField: "distance",
+            spherical: true,
+            ...(location.maxDistance && { maxDistance: location.maxDistance }),
+          },
+        },
+      ];
+      /*queryConditions['location.coordinates'] = {
         $nearSphere: {
           $geometry: { type: 'Point', coordinates: [location.longitude, location.latitude] },
           ...(location.maxDistance && { $maxDistance: location.maxDistance })
         }
-      };
-    }
+      };*/
 
-    try {
-      const listings = await this.listingModel.find(queryConditions).exec();
-      if (!listings) {
-        throw new NotFoundException('No listings found matching the criteria');
-      }
-      return listings;
-    } catch (error) {
-      console.error('Error fetching listings:', error);
-      if (error.name === 'ValidationError') {
-        throw new BadRequestException('DB validation failed');
-      } else {
-        throw new InternalServerErrorException('An unexpected error occurred');
+      try {
+        //const listings = await this.listingModel.find(queryConditions).exec();
+        const listings = await this.listingModel.aggregate(pipeline).exec();
+        if (!listings) {
+          throw new NotFoundException('No listings found matching the criteria');
+        }
+        return listings;
+      } catch (error) {
+        console.error('Error fetching listings:', error);
+        if (error.name === 'ValidationError') {
+          throw new BadRequestException('DB validation failed');
+        } else {
+          throw new InternalServerErrorException('An unexpected error occurred');
+        }
       }
     }
   }
@@ -159,20 +174,40 @@ export class ListingService {
   }
 
   async deleteListing(listingId: string): Promise<void> {
-    const result = await this.listingModel.deleteOne({ _id: listingId }).exec();
-    if (result.deletedCount === 0) {
-      throw new NotFoundException(`Listing with ID "${listingId}" not found`);
+    try {
+      const result = await this.listingModel.deleteOne({ _id: listingId }).exec();
+      if (result.deletedCount === 0) {
+        console.error(`Listing with ID "${listingId}" not found`);
+        throw new NotFoundException(`Listing not found`);
+      }
+    } catch (error) {
+      console.error(`Error deleting listing ${listingId}`, error);
+      if (error.name === 'ValidationError') {
+        throw new BadRequestException('DB validation failed');
+      } else {
+        throw new InternalServerErrorException('An unexpected error occurred');
+      }
     }
   }
 
-  // Update the status of a listing
-  async updateListingStatus(listingId: string, newStatus: 'active' | 'delete' | 'sold'): Promise<Listing> {
-    const listing = await this.listingModel.findById(listingId);
-    if (!listing) {
-      throw new NotFoundException(`Listing with ID "${listingId}" not found`);
+  // Update the status of a listing, can only be marked as sold and then cannot be undone.
+  async updateListingStatus(listingId: string, newStatus: 'Sold'): Promise<Listing> {
+    try {
+      const listing = await this.listingModel.findById(listingId);
+      if (!listing) {
+        console.error(`Listing with ID "${listingId}" not found`);
+        throw new NotFoundException(`Listing not found`);
+      }
+      listing.state = newStatus;
+      return listing.save();
+    } catch (error) {
+      console.error(`Error marking listing as sold ${listingId}`, error);
+      if (error.name === 'ValidationError') {
+        throw new BadRequestException('DB validation failed');
+      } else {
+        throw new InternalServerErrorException('An unexpected error occurred');
+      }
     }
-    listing.state = newStatus;
-    return listing.save();
   }
 
 /*async createListing(userId: string, createListingDto: CreateListingDTO): Promise<Listing> {
@@ -256,7 +291,7 @@ async createListing(userId: string, createListingDto: CreateListingDTO): Promise
     const newListing = new this.listingModel({
       ...createListingDto,
       sellerId: seller._id,
-      state: 'active',
+      state: 'Available',
       location: convertedLocation
     });
 
@@ -384,4 +419,9 @@ private convertLocationDtoToSchema(locationDto: LocationDTO): any {
       await seller.save();
     }
   }*/
+}
+
+interface GeoJSONPoint {
+  type: "Point";
+  coordinates: [number, number];
 }

@@ -137,7 +137,7 @@ export class ListingController {
 
   // Update listing status
   @Patch('/:listingId/status')
-  async updateListingStatus(@Param('listingId') listingId: string, @Body('status') status: 'active' | 'delete' | 'sold') {
+  async updateListingStatus(@Param('listingId') listingId: string, @Body('status') status: 'Sold') {
     return this.listingService.updateListingStatus(listingId, status);
   }
 }
