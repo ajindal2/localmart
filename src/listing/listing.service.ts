@@ -16,42 +16,51 @@ export class ListingService {
     @InjectModel(Seller.name) private readonly sellerModel: Model<Seller>
     ) { }
 
-  async getFilteredListings(query: QueryListingDTO): Promise<Listing[]> {
-    const { title, location } = query;
-    let queryConditions = { status: { $ne: 'Sold' } }; // Exclude 'Sold' listings
-
-    // Fuzzy text search for title
-    if (title) {
-      queryConditions['title'] = { $regex: title, $options: 'i' }; // Case-insensitive search
-    }
-
-    // Geospatial query
-    if (location && location.latitude != null && location.longitude != null) {
-      const near: GeoJSONPoint = {
-        type: "Point",
-        coordinates: [location.longitude, location.latitude]
+    async getFilteredListings(query: QueryListingDTO): Promise<Listing[]> {
+      const { title } = query;
+      let locationParams = {
+        latitude: query['location.latitude'],
+        longitude: query['location.longitude'],
+        maxDistance: query['location.maxDistance']
       };
-
-      const pipeline = [
-        {
+  
+      type AggregationStage = 
+        | { $geoNear: { near: GeoJSONPoint; distanceField: string; maxDistance?: number; spherical: true; } }
+        | { $match: Record<string, any> };
+  
+      let queryConditions = { status: { $ne: 'Sold' } }; // Exclude 'Sold' listings
+  
+      // Fuzzy text search for title
+      if (title) {
+        queryConditions['title'] = { $regex: title, $options: 'i' }; // Case-insensitive search
+      }
+  
+      const pipeline: AggregationStage[] = [];
+  
+      // Geospatial query - only add if location is provided
+      if (locationParams.latitude != null && locationParams.longitude != null) {
+        const near: GeoJSONPoint = {
+          type: "Point",
+          coordinates: [parseFloat(locationParams.longitude), parseFloat(locationParams.latitude)]
+        };
+  
+        pipeline.push({
           $geoNear: {
             near,
             distanceField: "distance",
             spherical: true,
-            ...(location.maxDistance && { maxDistance: location.maxDistance }),
+            ...(locationParams.maxDistance && { maxDistance: parseFloat(locationParams.maxDistance) }),
           },
-        },
-      ];
-      /*queryConditions['location.coordinates'] = {
-        $nearSphere: {
-          $geometry: { type: 'Point', coordinates: [location.longitude, location.latitude] },
-          ...(location.maxDistance && { $maxDistance: location.maxDistance })
-        }
-      };*/
-
+        });
+      }
+  
+      // Always apply the match stage to filter by other conditions
+      pipeline.push({
+        $match: queryConditions
+      });
+  
       try {
-        //const listings = await this.listingModel.find(queryConditions).exec();
-        const listings = await this.listingModel.aggregate(pipeline).exec();
+        const listings = await this.listingModel.aggregate(pipeline).exec();  
         if (!listings) {
           throw new NotFoundException('No listings found matching the criteria');
         }
@@ -65,9 +74,9 @@ export class ListingService {
         }
       }
     }
-  }
 
   async getAllListings(): Promise<Listing[]> {
+
     try {
       const listings = await this.listingModel.find().exec();
       if (!listings) {
@@ -375,6 +384,7 @@ private convertLocationDtoToSchema(locationDto: LocationDTO): any {
   const location = {
     postalCode: locationDto.postalCode,
     city: locationDto.city,
+    state: locationDto.state,
   };
 
   if (locationDto.coordinates && locationDto.coordinates.length > 0) {

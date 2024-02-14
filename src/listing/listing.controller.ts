@@ -78,7 +78,7 @@ export class ListingController {
   }
 
   @UseGuards(JwtAuthGuard)
-  @Put(':id')
+  @Put('/:id')
   @UseInterceptors(FilesInterceptor('images', 10, {
     storage: diskStorage({
       destination: './uploads',

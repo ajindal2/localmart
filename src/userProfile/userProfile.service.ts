@@ -96,6 +96,7 @@ export class UserProfileService {
     const location = {
       postalCode: locationDto.postalCode,
       city: locationDto.city,
+      state: locationDto.state,
     };
   
     if (locationDto.coordinates && locationDto.coordinates.length > 0) {

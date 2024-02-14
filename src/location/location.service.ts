@@ -105,7 +105,6 @@ export class LocationService {
     }
 
     private processGeocodeResponse(result: any, postalCode: string): any {
-        console.log('processGeocodeResponse: ', result);
         const city = result.address_components.find((component) => component.types.includes('locality'))?.long_name;
         const state = result.address_components.find((component) => component.types.includes('administrative_area_level_1'))?.long_name;
         const location = result.geometry.location;
