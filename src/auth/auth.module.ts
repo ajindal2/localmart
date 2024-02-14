@@ -9,7 +9,6 @@ import { UserModule } from '../user/user.module';
 import { JWT_SECRET } from '../constants';
 import { MongooseModule } from '@nestjs/mongoose';
 import { RefreshTokenSchema } from './schemas/refresh-token.schema';
-import { RefreshTokenStrategy } from './strategies/refreshToken.strategy';
 
 @Module({
   imports: [
@@ -21,7 +20,7 @@ import { RefreshTokenStrategy } from './strategies/refreshToken.strategy';
     }),
     MongooseModule.forFeature([{ name: 'RefreshToken', schema: RefreshTokenSchema }]),
   ],
-  providers: [AuthService, LocalStrategy, JwtStrategy, RefreshTokenStrategy],
+  providers: [AuthService, LocalStrategy, JwtStrategy],
   controllers: [AuthController],
   exports: [AuthService],
 })

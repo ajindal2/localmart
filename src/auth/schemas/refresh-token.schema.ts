@@ -1,14 +1,25 @@
+import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
+import { Document, Types } from 'mongoose';
+import { User } from '../../user/schemas/user.schema'; // Assuming User schema is in the same directory
 
-import * as mongoose from 'mongoose';
+export type RefreshTokenDocument = Document & RefreshToken;
 
-export const RefreshTokenSchema = new mongoose.Schema({
-  userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
-  refreshToken: String,
-  expires: Date,
-});
+@Schema()
+export class RefreshToken {
 
-export interface RefreshToken extends mongoose.Document {
-  userId: mongoose.Schema.Types.ObjectId;
-  refreshToken: string;
-  expires: Date;
+  @Prop({ required: true })
+  token: string;
+
+  @Prop({ type: Types.ObjectId, ref: User.name, required: true })
+  userId: Types.ObjectId;
+
+  @Prop({ required: true })
+  expiryDate: Date;
+
+  @Prop({ required: true })
+  lastUsedAt: Date;
 }
+
+export const RefreshTokenSchema = SchemaFactory.createForClass(RefreshToken);
+
+RefreshTokenSchema.index({ expiryDate: 1 }, { expireAfterSeconds: 0 });

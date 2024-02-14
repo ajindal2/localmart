@@ -1,10 +1,9 @@
-import { Controller, Post, Body, Res, HttpStatus, UseGuards, Request, Req, UsePipes, ValidationPipe, BadRequestException } from '@nestjs/common';
+import { Controller, Post, Body, UseGuards, Request, UsePipes, ValidationPipe, BadRequestException, UnauthorizedException } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { UserService } from 'src/user/user.service';
 import { CreateUserDTO } from 'src/user/dtos/create-user.dto';
 import { LocalAuthGuard } from 'src/auth/guards/local-auth.guard';
-import { AuthGuard } from '@nestjs/passport';
-import { RefreshTokenDTO } from './dtos/refresh-token.dto';
+import { RefreshTokenDTO } from './dtos/fresh-token.dto';
 
 
 @Controller('auth')
@@ -16,19 +15,6 @@ export class AuthController {
   async login(@Request() req) {
     return this.authService.login(req.user);
   }
-
-
-  /*@Post('/register')
-  async register(@Body() createUserDto: CreateUserDTO) {
-    const result = await this.authService.register(createUserDto);
-    const { user, token } = result;
-
-    return {
-      username: user.userName,
-      email: user.emailAddress,
-      token,
-    };
-  }*/
 
   @Post('/register')
   @UsePipes(new ValidationPipe({
@@ -50,11 +36,21 @@ export class AuthController {
     }
   }
 
-  @Post('/refresh')
+  /*@Post('/refresh')
   @UseGuards(AuthGuard('jwt-refresh'))
   async refresh(@Req() req: any, @Body() body: RefreshTokenDTO) {
     const user = req.user;
     const accessToken = await this.authService.createAccessToken(user);
     return { accessToken };
+  }*/
+
+  @Post('/refresh')
+  async refresh(@Body() refreshTokenDto: RefreshTokenDTO) {
+    console.log('Inside /refresh controller');
+    const { access_token, refresh_token } = await this.authService.refreshToken(refreshTokenDto.refreshToken);
+    if (!access_token) {
+      throw new UnauthorizedException();
+    }
+    return { access_token, refresh_token };
   }
 }
