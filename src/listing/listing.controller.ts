@@ -31,7 +31,7 @@ export class ListingController {
   }
 
   @UseGuards(JwtAuthGuard)
-  @Post()
+  @Post('/:userId')
   @UseInterceptors(FilesInterceptor('images', 10, {
     storage: diskStorage({
       destination: './uploads', // specify the destination directory
@@ -43,39 +43,33 @@ export class ListingController {
     }),
   }))
   async createListing(
-    @UploadedFiles() files: Express.Multer.File[], @Req() req: Request,
+    @UploadedFiles() files: Express.Multer.File[], @Req() req: Request, @Param('userId') userId: string, 
     @Body() createListingDto: CreateListingDTO) {
 
-      if (!req.user) {
-        throw new UnauthorizedException('No user object found in request');
-      }
-  
-      // Extract userId and check if it exists
-      const userId = req.user['userId']; // Adjust the path according to how your user object is structured
       if (!userId) {
         throw new UnauthorizedException('User ID not found in request');
       }
   
-    // Check if images are uploaded
-    if (!files || files.length === 0) {
-      throw new BadRequestException('No images provided');
+      // Check if images are uploaded
+      if (!files || files.length === 0) {
+        throw new BadRequestException('No images provided');
+      }
+
+      const protocol = req.headers['x-forwarded-proto'] || req.protocol || 'http'; 
+      const host = req.headers['host'] || req.get('host') || 'localhost:3000';
+
+      // Process the files, store them, and get their URLs
+      const imageUrls = files.map(file => {
+        const fileUrl = `${protocol}://${host}/uploads/${file.filename}`;
+        return fileUrl;
+      });
+
+      // Add the image URLs to the DTO
+      createListingDto.imageUrls = imageUrls;
+
+      // Now call the service method to create the listing
+      return this.listingService.createListing(userId, createListingDto);
     }
-
-    const protocol = req.headers['x-forwarded-proto'] || req.protocol || 'http'; 
-    const host = req.headers['host'] || req.get('host') || 'localhost:3000';
-
-    // Process the files, store them, and get their URLs
-    const imageUrls = files.map(file => {
-      const fileUrl = `${protocol}://${host}/uploads/${file.filename}`;
-      return fileUrl;
-    });
-
-    // Add the image URLs to the DTO
-    createListingDto.imageUrls = imageUrls;
-
-    // Now call the service method to create the listing
-    return this.listingService.createListing(userId, createListingDto);
-  }
 
   @UseGuards(JwtAuthGuard)
   @Put('/:id')
@@ -94,6 +88,7 @@ export class ListingController {
     @Req() req: Request,
     @Body() updateListingDto: UpdateListingDTO
   ) {
+      // TODO check userId exists when token gets refreshed.
       if (!req.user) {
         throw new UnauthorizedException('No user object found in request');
       }

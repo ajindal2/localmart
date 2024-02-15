@@ -11,6 +11,7 @@ export class LocationService {
         const cached = this.cacheService.get(cacheKey);
 
         if (cached) {
+            console.log('Inside cache');
             // Check if the cached value is an error placeholder
             if (cached.error) {
                 // Handle the previously cached error case, e.g., by retrying after a certain time
@@ -25,9 +26,10 @@ export class LocationService {
         }
 
         try {
-            const url = `https://maps.googleapis.com/maps/api/geocode/json?latlng=${lat},${lng}&result_type=street_address&location_type=ROOFTOP&key=AIzaSyCjS6WbSux7d1QQcjENuojKTvAzAtH9xn8`;
+            const url = `https://maps.googleapis.com/maps/api/geocode/json?latlng=${lat},${lng}&key=AIzaSyCjS6WbSux7d1QQcjENuojKTvAzAtH9xn8`;
             const response = await fetch(url);
             const data = await response.json();
+            console.log('After fetching url: ', data);
 
             if (data.status === 'OK' && data.results.length > 0) {
                 // Check if the result is in the US
