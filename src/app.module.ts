@@ -12,6 +12,7 @@ import { RatingModule } from './rating/rating.module';
 import { SavedListingModule } from './saved-listing/saved-listing.module';
 import { LocationModule } from './location/location.module';
 import { CacheModule } from './cache/cache.module';
+import { ChatModule } from './chat/chat.module';
 
 // TODO add authentication. Ask "Can you give step by steps details on how to setup and start my mongodb server?"
 @Module({
@@ -32,6 +33,7 @@ import { CacheModule } from './cache/cache.module';
     SavedListingModule,
     LocationModule,
     CacheModule,
+    ChatModule,
   ],
   controllers: [AppController],
   providers: [AppService],

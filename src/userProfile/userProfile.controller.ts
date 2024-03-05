@@ -4,9 +4,6 @@ import { CreateUserProfileDTO } from './dtos/create-userProfile.dto';
 import { UpdateUserProfileDTO } from './dtos/update-userProfile.dto';
 import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
 import { FileInterceptor } from '@nestjs/platform-express';
-import axios from 'axios';
-import * as FormData from 'form-data';
-import { use } from 'passport';
 import { diskStorage } from 'multer';
 import { Request } from 'express';
 
@@ -45,45 +42,6 @@ export class UserProfileController {
   async deleteUserProfile(@Param('userId') userId: string) {
     await this.userProfileService.deleteUserProfile(userId);
   }
-
-  /*@Put('/:userId/image')
-  @UseGuards(JwtAuthGuard)
-  @UseInterceptors(FileInterceptor('file')) // 'file' is the name of the field in the request
-  async updateProfileImage(@UploadedFile() file, @Param('userId') userId: string) {
-    if (!file) throw new BadRequestException('Invalid file upload.');
-
-    // Assuming your Python server has an endpoint to handle the file upload
-    const pythonServerURL = ' http://192.168.86.49:9000/upload'; 
-    // Create a FormData instance
-    const formData = new FormData();
-    formData.append('file', file.buffer, {
-      filename: file.originalname,
-      contentType: file.mimetype,
-    });
-
-    try {
-      // Send the file to the Python server
-      const response = await axios.post(pythonServerURL, formData, {
-        headers: formData.getHeaders(),
-      });
-
-      // TODO only added for debugging
-      if (response.status === 200) {
-        console.log('Upload successful. Image URL:', response.data.imageUrl);
-      } else {
-          console.log('Upload failed:', response.data.message);
-      }
-      // Assuming the Python server returns the URL of the uploaded image
-      const imageUrl = response.data.imageUrl;
-
-    // Call a method in your service that will handle either creation or update
-    const updatedProfile = await this.userProfileService.createOrUpdateProfileWithImage(userId, imageUrl);
-    return { profile: updatedProfile };
-  } catch (error) {
-    console.error('Failed to upload image to the Python server: ', error);
-    throw new BadRequestException('Failed to upload image to the Python server');
-  }
-}*/
 
 @Put('/:userId/image')
   @UseGuards(JwtAuthGuard)
