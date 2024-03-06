@@ -18,7 +18,6 @@ import { Types } from 'mongoose';
 import { Chat } from './schemas/chat.schema';
 
 @WebSocketGateway({
-    //path: '/ws',
     cors: {
       origin: '*', // Allow any origin
     },
