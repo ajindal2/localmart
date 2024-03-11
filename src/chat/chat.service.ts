@@ -62,7 +62,7 @@ export class ChatService {
 
       // Send a push notification to each of the recipient's devices
       for (const pushToken of pushTokens) {
-        await this.sendPushNotification(pushToken, message.content);
+        await this.sendPushNotification(pushToken, message.content, chatId.toString());
       }
 
       return chat;
@@ -147,13 +147,20 @@ export class ChatService {
     }
   }
 
-  async sendPushNotification(pushToken: string, message: string) {
+  async sendPushNotification(pushToken: string, messageContent: string, chatId: string) {
+
     const notification = {
       to: pushToken,
       sound: 'default',
       title: 'New Message',
-      body: message,
-      data: { message },
+      //contentAvailable: true, // For iOS
+      //priority: 'high', // For Android
+      body: messageContent,
+      data: { 
+        type: 'NEW_MESSAGE',
+        chatId: chatId,
+        message: messageContent,
+      },
     };
 
     await axios.post('https://exp.host/--/api/v2/push/send', notification, {

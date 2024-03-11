@@ -45,7 +45,7 @@ import { Chat } from './schemas/chat.schema';
             client.emit('error', 'Error creating chat');
             //callback({ error: 'Error creating chat' }); // Send back error
         }
-    }
+    }*/
 
    @SubscribeMessage('chat')
    async handleChatEvent(@MessageBody() payload: { createMessageDTO: CreateMessageDTO, chatId: string }, @ConnectedSocket() client: Socket): Promise<void> {
@@ -65,7 +65,7 @@ import { Chat } from './schemas/chat.schema';
             console.error('Error sending message', error);
             client.emit('error', 'Error sending message');
         }
-    }*/
+    }
 
     @SubscribeMessage('joinRoom')
     handleJoinRoom(@MessageBody() chatId: string, @ConnectedSocket() client: Socket) {
@@ -79,7 +79,7 @@ import { Chat } from './schemas/chat.schema';
       client.leave(chatId);
     }
 
-    @SubscribeMessage('getChats')
+    /*@SubscribeMessage('getChats')
     async handleGetChats(client: Socket, userId: string): Promise<void> {
     try{
         const chats = await this.chatService.getChats(userId);
@@ -90,7 +90,7 @@ import { Chat } from './schemas/chat.schema';
         }
     }
 
-    /*@SubscribeMessage('getChat')
+    @SubscribeMessage('getChat')
     async handleGetChat(client: Socket, chatId: string): Promise<void> {
     try {
         const chat = await this.chatService.getChat(chatId);
