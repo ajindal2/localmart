@@ -1,30 +1,20 @@
 import { BadRequestException, HttpException, HttpStatus, Injectable, InternalServerErrorException, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
-import { Chat, ChatDocument } from './schemas/chat.schema';
-import { Message, MessageDocument } from './schemas/message.schema';
+import { Chat } from './schemas/chat.schema';
+import { Message } from './schemas/message.schema';
 import { CreateChatDTO } from './dtos/create-chat.dto';
 import { CreateMessageDTO } from './dtos/create-message.dto';
+import { User } from 'src/user/schemas/user.schema';
+import axios from 'axios';
 
 @Injectable()
 export class ChatService {
   constructor(
     @InjectModel(Chat.name) private chatModel: Model<Chat>, 
-    @InjectModel(Message.name) private messageModel: Model<Message>
+    @InjectModel(Message.name) private messageModel: Model<Message>,
+    @InjectModel(User.name) private userModel: Model<User>
   ) {}
-
-  /*async createChat(createChatDTO: CreateChatDTO): Promise<Chat> {
-    try {
-      let chat = await this.chatModel.findOne(createChatDTO).exec();
-      if (!chat) {
-        chat = new this.chatModel(createChatDTO);
-        await chat.save();
-      } 
-      return chat;
-    } catch (error) {
-      throw new HttpException('Error creating chat', HttpStatus.INTERNAL_SERVER_ERROR);
-    }
-  }*/
 
   async createChat(createChatDTO: CreateChatDTO): Promise<Chat> {
     try {
@@ -38,7 +28,6 @@ export class ChatService {
         .populate({ path: 'sellerId', select: 'userName' })
           .populate({ path: 'buyerId', select: 'userName' }) 
           .populate({path: 'messages.senderId', select: 'userName'})
-          //.sort({ 'messages.sentAt': -1 });
       } else {
         // Ensure the chat is populated with listing details even if it already existed
         chat = await this.chatModel.findById(chat._id)
@@ -46,24 +35,37 @@ export class ChatService {
         .populate({ path: 'sellerId', select: 'userName' })
           .populate({ path: 'buyerId', select: 'userName' }) 
           .populate({path: 'messages.senderId', select: 'userName'})
-          //.sort({ 'messages.sentAt': -1 });
       }
-      console.log('chat in createChat: ', chat);
       return chat.toObject(); // Convert the Mongoose document to a plain JavaScript object
     } catch (error) {
       throw new HttpException('Error creating chat', HttpStatus.INTERNAL_SERVER_ERROR);
     }
   }
-  
+
   async addMessageToChat(chatId: Types.ObjectId, createMessageDTO: CreateMessageDTO): Promise<Chat> {
     try {
       const message = new this.messageModel(createMessageDTO);
-      console.log('message to be added: ', message);
       await this.chatModel.updateOne(
         { _id: chatId },
         { $push: { messages: message } }
       );
-      return this.chatModel.findOne(chatId).exec();
+
+      // Get the chat document
+      const chat = await this.chatModel.findOne(chatId).exec();
+
+      // Get the recipient's ID
+      const recipientId = chat.sellerId.equals(message.senderId) ? chat.buyerId : chat.sellerId;
+
+      // Get the recipient's push tokens
+      const recipient = await this.userModel.findById(recipientId).exec();
+      const pushTokens = recipient.pushTokens;
+
+      // Send a push notification to each of the recipient's devices
+      for (const pushToken of pushTokens) {
+        await this.sendPushNotification(pushToken, message.content);
+      }
+
+      return chat;
     } catch (error) {
       throw new HttpException('Error adding message to chat', HttpStatus.INTERNAL_SERVER_ERROR);
     }
@@ -109,6 +111,25 @@ export class ChatService {
     }
   }
 
+  async getChat(chatId: string): Promise<Chat> {
+    try {
+      // Fetch chat by chatId
+      const chat = await this.chatModel.findById(chatId)
+      .populate({ path: 'listingId' }) // Populate listing object
+      .populate({ path: 'sellerId', select: 'userName' }) // Populate seller details
+      .populate({ path: 'buyerId', select: 'userName' }) // Populate buyer details
+      .populate({path: 'messages.senderId', select: 'userName'})
+      .exec();
+  
+      if (!chat) {
+        throw new NotFoundException(`No chat found with id ${chatId}`);
+      }
+      return chat;
+    } catch (error) {
+      throw new HttpException('Error getting chat', HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+  }
+
   async deleteChat(chatId: string): Promise<void> {
     try {
       const result = await this.chatModel.deleteOne({ _id: chatId }).exec();
@@ -124,5 +145,24 @@ export class ChatService {
         throw new InternalServerErrorException('An unexpected error occurred');
       }
     }
+  }
+
+  async sendPushNotification(pushToken: string, message: string) {
+    const notification = {
+      to: pushToken,
+      sound: 'default',
+      title: 'New Message',
+      body: message,
+      data: { message },
+    };
+
+    await axios.post('https://exp.host/--/api/v2/push/send', notification, {
+      headers: {
+        'host': 'exp.host',
+        'accept': 'application/json',
+        'accept-encoding': 'gzip, deflate',
+        'content-type': 'application/json',
+      },
+    });
   }
 }

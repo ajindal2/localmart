@@ -55,4 +55,20 @@ export class UserService {
   async deleteById(id: ObjectId): Promise<void> {
     await this.userModel.findByIdAndRemove(id).exec();
   }
+
+  async updatePushToken(userId: string, pushToken: string): Promise<User> {
+    const user = await this.userModel.findById(userId).exec();
+    if (!user) {
+      throw new NotFoundException(`User with ID ${userId} not found`);
+    }
+    
+    // If the user already has this pushToken, no need to add it again
+    if (!user.pushTokens.includes(pushToken)) {
+      user.pushTokens.push(pushToken);
+      await user.save();
+    }
+  
+    return user;
+  }
+  
 }

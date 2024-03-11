@@ -22,6 +22,9 @@ export class User {
   })
   date: Date; // Date when the user joined localmart
 
+  @Prop([String])
+  pushTokens: string[];
+
   // TODO think about using roles!!
 /*
   @Prop()
