@@ -71,24 +71,45 @@ export class ChatService {
     }
   }
 
+  async markMessagesAsRead(chatId: string, userId:string): Promise<void> {
+    try {
+      const result = await this.chatModel.updateOne(
+        { _id: chatId }, // filter to identify the specific chat
+        { $set: { "messages.$[elem].read": true } }, // update the read field in each message
+        { 
+          multi: true, // apply this update to all documents that match the filter
+          arrayFilters: [{ "elem.senderId": { $ne: userId }, "elem.read": false }] // Exclude messages sent by the current user. when a user opens a chat, only the messages sent to them (and not by them) are marked as read
+        }
+      );
+
+      //console.log('Unread messages in chat', chatId, 'marked as read for user', userId);
+  
+      if (result.modifiedCount === 0) {
+        console.log('No unread messages to update or chat not found');
+      } else {
+        console.log(`${result.modifiedCount} messages marked as read in chat ${chatId}`);
+      }
+    } catch (error) {
+      console.error('Error marking messages as read:', error);
+      throw new HttpException('Error marking messages as read', HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+  }
+
   async getChats(userId: string): Promise<Chat[]> {
     try {
-      // Fetch chats where the current user is either the seller or the buyer
       const chats = await this.chatModel.find({
         $or: [{ sellerId: userId }, { buyerId: userId }],
       })
-      .populate({ path: 'listingId' }) // Populate listing object. This is needed on FE to redirect to Viewlisting whne user clicks on listing header in the chat screen.
-      .populate({ path: 'sellerId', select: 'userName', match: { _id: { $ne: userId } } }) // Populate seller details excluding the current user
-      .populate({ path: 'buyerId', select: 'userName', match: { _id: { $ne: userId } } }) // Populate buyer details excluding the current user
+      .populate('listingId')
+      .populate({ path: 'sellerId', select: 'userName' })
+      .populate({ path: 'buyerId', select: 'userName' })
       .populate({path: 'messages.senderId', select: 'userName'})
-      //.sort({ 'messages.sentAt': -1 }) // Sort by the latest message's timestamp
       .exec();
   
       if (!chats || chats.length === 0) {
         throw new NotFoundException(`No chats found for user with id ${userId}`);
       }
 
-      // Iterating over each chat
       /*chats.forEach((chat, chatIndex) => {
         console.log(`Chat ${chatIndex + 1}:`, chat); // Log the chat object itself
 
@@ -96,16 +117,24 @@ export class ChatService {
         if (chat.messages && chat.messages.length > 0) {
           chat.messages.forEach((message, messageIndex) => {
             console.log(`Message ${messageIndex + 1} in Chat ${chatIndex + 1}:`, message);
-
-            // Log specific details of the message, like content and sender's userName
-            console.log(`Content: ${message.content}, Sender: ${message.senderId}`);
           });
         } else {
           console.log(`Chat ${chatIndex + 1} has no messages.`);
         }
       });*/
-
-      return chats;
+  
+      // Calculate unread messages for each chat
+      const chatsWithUnread = chats.map(chat => {
+        const unreadMessages = chat.messages.filter(message => !message.read);
+        return {
+          ...chat.toObject(),
+          unreadCount: unreadMessages.length,
+          lastMessageRead: unreadMessages.length === 0 || unreadMessages[0]._id.toString() !== chat.messages[chat.messages.length - 1]._id.toString(),
+        };
+      });
+  
+      //console.log('chatsWithUnread: ', chatsWithUnread);
+      return chatsWithUnread;
     } catch (error) {
       throw new HttpException('Error getting chats', HttpStatus.INTERNAL_SERVER_ERROR);
     }

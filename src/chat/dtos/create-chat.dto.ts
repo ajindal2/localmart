@@ -1,4 +1,4 @@
-import { IsMongoId, IsNotEmpty } from 'class-validator';
+import { IsBoolean, IsMongoId, IsNotEmpty, IsOptional } from 'class-validator';
 
 export class CreateChatDTO {
   @IsMongoId()
@@ -12,6 +12,10 @@ export class CreateChatDTO {
   @IsMongoId()
   @IsNotEmpty()
   listingId: string; // The ID of the listing
+
+  @IsOptional()
+  @IsBoolean()
+  read?: boolean; // Make read optional, defaulting to false
 }
 
 
