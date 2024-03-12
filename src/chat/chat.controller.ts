@@ -22,13 +22,11 @@ export class ChatController {
   @Post('/markAsRead')
   async markChatMessagesAsRead(@Body() body: MarkAsReadDto) {
     const { chatId, userId } = body;
-    console.log('Logging userId in controller: ', userId);
-    console.log('Logging chatId in controller: ', chatId);
     await this.chatService.markMessagesAsRead(chatId, userId);
     return { message: 'Messages marked as read' };
   }
 
-  @Get(':userId')
+  @Get('/:userId')
   async getChats(@Param('userId') userId: string) {
     return this.chatService.getChats(userId);
   }
@@ -36,5 +34,16 @@ export class ChatController {
   @Delete('/:chatId')
   async deleteChat(@Param('chatId') chatId: string) {
     return this.chatService.deleteChat(chatId);
+  }
+
+  @Get('/:userId/notificationCount')
+  async getNotificationCount(@Param('userId') userId: string) {
+    return this.chatService.getNotificationCount(userId);
+  }
+
+  @Post('/:userId/updateNotificationCount')
+  async updateNotificationCount(@Param('userId') userId: string, @Body('count') count: number) {
+    await this.chatService.updateNotificationCount(userId, count);
+    return { message: 'Notification count updated successfully' };
   }
 }

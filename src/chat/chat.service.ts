@@ -7,13 +7,15 @@ import { CreateChatDTO } from './dtos/create-chat.dto';
 import { CreateMessageDTO } from './dtos/create-message.dto';
 import { User } from 'src/user/schemas/user.schema';
 import axios from 'axios';
+import { NotificationsCounter } from './schemas/notifications-counter.schema';
 
 @Injectable()
 export class ChatService {
   constructor(
     @InjectModel(Chat.name) private chatModel: Model<Chat>, 
     @InjectModel(Message.name) private messageModel: Model<Message>,
-    @InjectModel(User.name) private userModel: Model<User>
+    @InjectModel(User.name) private userModel: Model<User>,
+    @InjectModel(NotificationsCounter.name) private notificationsCounterModel: Model<NotificationsCounter>
   ) {}
 
   async createChat(createChatDTO: CreateChatDTO): Promise<Chat> {
@@ -59,6 +61,21 @@ export class ChatService {
       // Get the recipient's push tokens
       const recipient = await this.userModel.findById(recipientId).exec();
       const pushTokens = recipient.pushTokens;
+
+      // increment the notifications count for the recipient
+      const notificationsCounter = await this.notificationsCounterModel.findOne({ userId: recipientId }).exec();
+
+      if (notificationsCounter) {
+        // If the document exists, increment the count
+        await notificationsCounter.updateOne({ $inc: { unreadNotificationCount: 1 } }).exec();
+      } else {
+        // If no document exists for this user, create a new one
+        const newCounter = new this.notificationsCounterModel({
+          userId: recipientId,
+          unreadNotificationCount: 1 // Start the count at 1
+        });
+        await newCounter.save();
+      }
 
       // Send a push notification to each of the recipient's devices
       for (const pushToken of pushTokens) {
@@ -129,7 +146,7 @@ export class ChatService {
         return {
           ...chat.toObject(),
           unreadCount: unreadMessages.length,
-          lastMessageRead: unreadMessages.length === 0 || unreadMessages[0]._id.toString() !== chat.messages[chat.messages.length - 1]._id.toString(),
+          lastMessageRead: unreadMessages.length === 0, //|| unreadMessages[0]._id.toString() !== chat.messages[chat.messages.length - 1]._id.toString(),
         };
       });
   
@@ -174,6 +191,37 @@ export class ChatService {
         throw new InternalServerErrorException('An unexpected error occurred');
       }
     }
+  }
+
+  async getNotificationCount(userId: string): Promise<number> {
+    try {
+      const notificationsCounter = await this.notificationsCounterModel.findOne({ userId: userId }).exec();
+      if (!notificationsCounter) {
+        return 0; // Return 0 if no document exists for this user
+      }
+      return notificationsCounter.unreadNotificationCount;
+    } catch (error) {
+      console.error('Error getting notification count:', error);
+      return 0;
+    }
+  }
+
+  async updateNotificationCount(userId: string, count: number): Promise<void> {
+    const notificationsCounter = await this.notificationsCounterModel.findOne({ userId: userId }).exec();
+  
+    if (notificationsCounter) {
+      // Document exists, update it
+      await this.notificationsCounterModel.findByIdAndUpdate(notificationsCounter._id, { $set: { unreadNotificationCount: count } }).exec();
+    } else {
+      // Document doesn't exist, create a new one
+      const newCounter = new this.notificationsCounterModel({
+        userId: userId,
+        unreadNotificationCount: count
+      });
+      await newCounter.save();
+    }
+  
+   // console.log(`Notification count updated for user ${userId} to ${count}`);
   }
 
   async sendPushNotification(pushToken: string, messageContent: string, chatId: string) {

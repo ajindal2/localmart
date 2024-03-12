@@ -6,6 +6,7 @@ import { MessageSchema } from './schemas/message.schema';
 import { ChatSchema } from './schemas/chat.schema';
 import { ChatGateway } from './chat.gateway';
 import { UserSchema } from 'src/user/schemas/user.schema';
+import { NotificationsCounterSchema } from './schemas/notifications-counter.schema';
 
 @Module({
   imports: [
@@ -13,6 +14,7 @@ import { UserSchema } from 'src/user/schemas/user.schema';
       { name: 'Message', schema: MessageSchema },
       { name: 'Chat', schema: ChatSchema },
       { name: 'User', schema: UserSchema },
+      { name: 'NotificationsCounter', schema: NotificationsCounterSchema }, 
     ])
   ],
   providers: [ChatGateway, ChatService],
