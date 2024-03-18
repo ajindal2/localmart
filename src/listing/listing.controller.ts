@@ -1,4 +1,4 @@
-import { Controller, Post, Get, Put, Delete, Body, Param, Query, NotFoundException, UseInterceptors, UploadedFiles, Req, BadRequestException, UseGuards, UnauthorizedException, Patch } from '@nestjs/common';
+import { Controller, Post, Get, Put, Delete, Body, Param, Query, NotFoundException, UseInterceptors, UploadedFiles, Req, BadRequestException, UseGuards, UnauthorizedException, Patch, ParseIntPipe } from '@nestjs/common';
 import { ListingService } from './listing.service';
 import { QueryListingDTO } from './dtos/query-listing.dto';
 import { CreateListingDTO } from './dtos/create-listing.dto';
@@ -7,18 +7,24 @@ import { Request } from 'express';
 import { diskStorage } from 'multer';
 import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
 import { UpdateListingDTO } from './dtos/update-listing.dto';
+import { PaginatedListingsResult } from './listing.service'; 
 
 @Controller('listings')
 export class ListingController {
   constructor(private listingService: ListingService) { }
 
   @Get('/')
-  async getListings(@Query() queryListingDTO: QueryListingDTO) {
+  async getListings(
+    @Query() queryListingDTO: QueryListingDTO,
+    @Query('page', ParseIntPipe) page: number = 1,  // Default to page 1 if not specified or if parsing fails
+    @Query('limit', ParseIntPipe) limit: number = 10  // Default to 10 items per page if not specified or if parsing fails
+  ): Promise<PaginatedListingsResult> {
+    const paginationOptions = { page, limit };
     if (Object.keys(queryListingDTO).length) {
-      const filteredListings = await this.listingService.getFilteredListings(queryListingDTO);
+      const filteredListings = await this.listingService.getFilteredListings(queryListingDTO, paginationOptions);
       return filteredListings;
     } else {
-      const allListings = await this.listingService.getAllListings();
+      const allListings = await this.listingService.getAllListings(paginationOptions);
       return allListings;
     }
   }

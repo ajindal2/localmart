@@ -16,7 +16,7 @@ export class ListingService {
     @InjectModel(Seller.name) private readonly sellerModel: Model<Seller>
     ) { }
 
-    async getFilteredListings(query: QueryListingDTO): Promise<Listing[]> {
+    async getFilteredListings(query: QueryListingDTO, paginationOptions: { page: number; limit: number }): Promise<PaginatedListingsResult>  {
       const { title } = query;
       let locationParams = {
         latitude: query['location.latitude'],
@@ -58,14 +58,32 @@ export class ListingService {
       pipeline.push({
         $match: queryConditions
       });
+
+      const skip = (paginationOptions.page - 1) * paginationOptions.limit;
   
       try {
-        const listings = await this.listingModel.aggregate(pipeline).exec();  
+        const listings = await this.listingModel.aggregate(pipeline)
+        .skip(skip)
+        .limit(paginationOptions.limit)
+        .exec();  
+
         if (!listings) {
           throw new NotFoundException('No listings found matching the criteria');
         }
-        return listings;
-      } catch (error) {
+
+        const totalItems = await this.listingModel.countDocuments(queryConditions); // Count total documents matching the query
+        const totalPages = Math.ceil(totalItems / paginationOptions.limit);
+
+        return {
+          listings,
+          pagination: {
+            totalItems,
+            totalPages,
+            currentPage: paginationOptions.page,
+            itemsPerPage: paginationOptions.limit,
+          },
+        };
+       } catch (error) {
         console.error('Error fetching listings:', error);
         if (error.name === 'ValidationError') {
           throw new BadRequestException('DB validation failed');
@@ -75,23 +93,41 @@ export class ListingService {
       }
     }
 
-  async getAllListings(): Promise<Listing[]> {
-
-    try {
-      const listings = await this.listingModel.find().exec();
-      if (!listings) {
-        throw new NotFoundException('No listings found matching the criteria');
-      }
-      return listings;
-    } catch (error) {
-      console.error('Error fetching listings:', error);
-      if (error.name === 'ValidationError') {
-        throw new BadRequestException('DB Validation failed');
-      } else {
-        throw new InternalServerErrorException('An unexpected error occurred');
+    async getAllListings(paginationOptions: { page: number; limit: number }): Promise<PaginatedListingsResult> {
+      const { page, limit } = paginationOptions;
+      const skip = (page - 1) * limit;
+    
+      try {
+        const listings = await this.listingModel.find()
+          .skip(skip)
+          .limit(limit)
+          .exec();
+    
+        const totalItems = await this.listingModel.countDocuments();
+        const totalPages = Math.ceil(totalItems / limit);
+    
+        if (!listings) {
+          throw new NotFoundException('No listings found');
+        }
+    
+        return {
+          listings,
+          pagination: {
+            totalItems,
+            totalPages,
+            currentPage: page,
+            itemsPerPage: limit,
+          },
+        };
+      } catch (error) {
+        console.error('Error fetching listings:', error);
+        if (error.name === 'ValidationError') {
+          throw new BadRequestException('DB Validation failed');
+        } else {
+          throw new InternalServerErrorException('An unexpected error occurred');
+        }      
       }
     }
-  }
 
   async findListingsByUser(userId: string): Promise<Listing[]> {
     try {
@@ -434,4 +470,14 @@ private convertLocationDtoToSchema(locationDto: LocationDTO): any {
 interface GeoJSONPoint {
   type: "Point";
   coordinates: [number, number];
+}
+
+export interface PaginatedListingsResult {
+  listings: Listing[];
+  pagination: {
+    totalItems: number;
+    totalPages: number;
+    currentPage: number;
+    itemsPerPage: number;
+  };
 }
