@@ -40,12 +40,14 @@ export class RatingController {
   }
 
   @Get('user/:userId')
+  @UseGuards(JwtAuthGuard)
   async getRatingsByUser(@Param('userId') userId: string) {
     const result = await this.ratingService.getRatingsByUser(userId);
     return result;
   }
 
   @Delete(':id')
+  @UseGuards(JwtAuthGuard)
   @UseGuards(JwtAuthGuard)
   async deleteRating(@Req() req, @Param('id') id: string) {
     if (!req.user) {

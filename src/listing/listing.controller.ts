@@ -125,18 +125,21 @@ export class ListingController {
   }
 
   // Get listings for a specific user
+  @UseGuards(JwtAuthGuard)
   @Get('/user/:userId')
   async findListingsByUser(@Param('userId') userId: string) {
     return this.listingService.findListingsByUser(userId);
   }
 
   // Delete a listing
+  @UseGuards(JwtAuthGuard)
   @Delete('/:listingId')
   async deleteListing(@Param('listingId') listingId: string) {
     return this.listingService.deleteListing(listingId);
   }
 
   // Update listing status
+  @UseGuards(JwtAuthGuard)
   @Patch('/:listingId/status')
   async updateListingStatus(@Param('listingId') listingId: string, @Body('status') status: 'Sold') {
     return this.listingService.updateListingStatus(listingId, status);

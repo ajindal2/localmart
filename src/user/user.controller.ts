@@ -9,6 +9,7 @@ export class UserController {
   constructor(private userService: UserService) {}
 
   @Get('/:userId')
+  @UseGuards(JwtAuthGuard)
   async getUser(@Param('userId') userId: string) {
     const user = await this.userService.findByUserId(userId);
     if (!user) throw new NotFoundException('User does not exist!');
@@ -23,6 +24,7 @@ export class UserController {
   }
 
   @Post('/')
+  @UseGuards(JwtAuthGuard)
   @UsePipes(new ValidationPipe({ transform: true }))
   async createUser(@Body() createUserDto: CreateUserDTO) {
     // Incoming data is validated against CreateUserDto
@@ -32,10 +34,7 @@ export class UserController {
 
   @Post(':id/pushToken')
   async updatePushToken(@Param('id') id: string, @Body('token') token: string, @Res() response) {
-    const user = await this.userService.updatePushToken(id, token);
-    
-    console.log('Succesfully pushed token');
-    
+    const user = await this.userService.updatePushToken(id, token);    
     // Send a response body
     response.status(HttpStatus.OK).json(user);
   }

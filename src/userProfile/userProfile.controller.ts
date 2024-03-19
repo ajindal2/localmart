@@ -12,19 +12,21 @@ import { Request } from 'express';
 export class UserProfileController {
   constructor(private userProfileService: UserProfileService) {}
 
-  //@UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard)
   @Post()
   @UsePipes(new ValidationPipe({ transform: true }))
   async createUserProfile(@Body() createUserProfileDto: CreateUserProfileDTO) {
     return this.userProfileService.createUserProfile(createUserProfileDto);
   }
 
+  @UseGuards(JwtAuthGuard)
   @Get('/:userId')
   async getUserProfile(@Param('userId') userId: string) {    
     return this.userProfileService.getUserProfile(userId);
   }
 
   @Get('/:userId/location')
+  @UseGuards(JwtAuthGuard)
   async getUserLocation(@Param('userId') userId: string) {
     return await this.userProfileService.getUserLocation(userId);
   }
@@ -38,7 +40,7 @@ export class UserProfileController {
   }
 
   @Delete('/:userId')
-  //@UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard)
   async deleteUserProfile(@Param('userId') userId: string) {
     await this.userProfileService.deleteUserProfile(userId);
   }

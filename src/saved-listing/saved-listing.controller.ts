@@ -15,7 +15,7 @@ export class SavedListingController {
   }
 
   @Get('/:userId')
-  //@UseGuards(JwtAuthGuard) --> TODO. Will also need to add authoprization when maing GET call in FE
+  @UseGuards(JwtAuthGuard)
   async findAllByUser(@Param('userId') userId: string) {
     return this.savedListingService.findAllByUser(userId);
   }
@@ -27,7 +27,6 @@ export class SavedListingController {
   }
 
   @Get('check-status/:userId/:listingId')
-  //@UseGuards(JwtAuthGuard) --> TODO
   async checkSavedStatus(@Param('userId') userId: string, @Param('listingId') listingId: string) {
     return this.savedListingService.checkSavedStatus(userId, listingId);
   }

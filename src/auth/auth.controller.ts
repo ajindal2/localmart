@@ -46,7 +46,6 @@ export class AuthController {
 
   @Post('/refresh')
   async refresh(@Body() refreshTokenDto: RefreshTokenDTO) {
-    console.log('Inside /refresh controller');
     const { access_token, refresh_token } = await this.authService.refreshToken(refreshTokenDto.refreshToken);
     if (!access_token) {
       throw new UnauthorizedException();
