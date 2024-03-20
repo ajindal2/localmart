@@ -1,10 +1,11 @@
-import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ConflictException, Injectable, InternalServerErrorException, NotFoundException } from '@nestjs/common';
 import { Model, ObjectId } from 'mongoose';
 import { InjectModel } from '@nestjs/mongoose';
 import { User } from './schemas/user.schema';
 import { CreateUserDTO } from './dtos/create-user.dto';
 import { UpdateUserDTO } from './dtos/update-user.dto';
 import * as bcrypt from 'bcrypt';
+import { UpdatePasswordDTO } from './dtos/update-password.dto';
 
 @Injectable()
 export class UserService {
@@ -28,6 +29,49 @@ export class UserService {
     const newUser = await this.userModel.create(createUserDTO);
     newUser.password = await bcrypt.hash(newUser.password, 10);
     return newUser.save();
+  }
+
+  async findByEmail(email: string): Promise<User | undefined> {
+    const user = await this.userModel.findOne({ emailAddress: email  }).exec();
+    return user;
+  }
+
+  async updateSystemPassword(userId: string, newPassword: string): Promise<User> {
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+    const updatedUser = await this.userModel.findByIdAndUpdate(userId, { password: hashedPassword }, { new: true }).exec();
+    if (!updatedUser) {
+      console.log(`User with ID ${userId} not found`);
+    }
+    return updatedUser;
+  }
+
+  async updatePassword(userId: string, updatePasswordDto: UpdatePasswordDTO): Promise<void> {
+    console.log('Inside uodatePwd service');
+    const { currentPassword, newPassword } = updatePasswordDto;
+    try {
+      const user = await this.userModel.findById(userId);
+      if (!user) {
+        console.log('User not found: ', userId);
+        throw new NotFoundException('User not found');
+      }
+
+      const passwordsMatch = await bcrypt.compare(currentPassword, user.password);
+      if (!passwordsMatch) {
+        console.log('Current password is incorrect: ' );
+        throw new BadRequestException('Current password is incorrect');
+      }
+
+      const hashedNewPassword = await bcrypt.hash(newPassword, 10);
+      user.password = hashedNewPassword;
+      await user.save();
+    } catch (error) {
+      console.error(`Error updating password for userId ${userId}`, error);
+      if (error.name === 'ValidationError') {
+        throw new BadRequestException('DB Validation failed');
+      } else {
+        throw new InternalServerErrorException('An unexpected error occurred');
+      }
+    }
   }
 
   async findByUsername(userName: string): Promise<User> {

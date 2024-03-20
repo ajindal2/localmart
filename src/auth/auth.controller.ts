@@ -1,4 +1,4 @@
-import { Controller, Post, Body, UseGuards, Request, UsePipes, ValidationPipe, BadRequestException, UnauthorizedException } from '@nestjs/common';
+import { Controller, Post, Body, UseGuards, Request, UsePipes, ValidationPipe, BadRequestException, UnauthorizedException, HttpCode } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { UserService } from 'src/user/user.service';
 import { CreateUserDTO } from 'src/user/dtos/create-user.dto';
@@ -34,6 +34,18 @@ export class AuthController {
     } catch (error) {
       throw new BadRequestException('Error processing your request');
     }
+  }
+
+  @Post('forgot-password')
+  async forgotPassword(@Body('email') email: string): Promise<{ message: string }> {
+    await this.authService.handleForgotPassword(email);
+    return { message: 'If your email address is registered with us, you will receive an email with a new password.' };
+  }
+
+  @Post('forgot-username')
+  async forgotUserName(@Body('email') email: string): Promise<{ message: string }> {
+    await this.authService.handleForgotUserName(email);
+    return { message: 'If your email address is registered with us, you will receive an email with your username.' };
   }
 
   /*@Post('/refresh')

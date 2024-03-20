@@ -5,14 +5,18 @@ import { RefreshToken } from './schemas/refresh-token.schema';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { UserService } from 'src/user/user.service';
+import { randomBytes } from 'crypto';
+import { MailerService } from '@nestjs-modules/mailer'; // Assuming you're using @nestjs-modules/mailer for sending emails
 
 
 @Injectable()
 export class AuthService {
   constructor(
-    @InjectModel('RefreshToken') private readonly refreshTokenModel: Model<RefreshToken>,
+    @InjectModel('RefreshToken') 
+    private readonly refreshTokenModel: Model<RefreshToken>,
     private userService: UserService,
     private jwtService: JwtService,
+    private mailerService: MailerService
   ) {}
 
   async validateUser(username: string, password: string): Promise<any> {
@@ -42,6 +46,63 @@ export class AuthService {
       access_token: this.jwtService.sign(payload),
       refresh_token: refreshToken,
     };
+  }
+
+  async handleForgotPassword(email: string): Promise<void> {
+    try {
+      const user = await this.userService.findByEmail(email);
+      
+      if (!user) {
+        // Log the event and silently fail to prevent email enumeration
+        console.log(`Forgot password attempted for non-existent email: ${email}`);
+        return;
+      }
+
+      const newPassword = this.generatePassword(); 
+      await this.userService.updateSystemPassword(user._id, newPassword); 
+
+      this.mailerService.sendMail({
+        //to: email,
+        to: 'aanchaljindal@gmail.com',
+        from: 'rahulgarg123@yahoo.com',
+        subject: 'Your new password',
+        template: 'password-reset',
+        context: {
+          password: newPassword,
+        },
+      });
+    } catch (error) {
+      console.log("Error in Mail service: ", error);
+    }
+  }
+
+  async handleForgotUserName(email: string): Promise<void> {
+    try {
+      const user = await this.userService.findByEmail(email);
+      
+      if (!user) {
+        // Log the event and silently fail to prevent email enumeration
+        console.log(`Forgot password attempted for non-existent email: ${email}`);
+        return;
+      }
+
+      this.mailerService.sendMail({
+        //to: email,
+        to: 'aanchaljindal@gmail.com',
+        from: 'rahulgarg123@yahoo.com',
+        subject: 'Your Username',
+        template: 'send-username',
+        context: {
+          userName: user.userName,
+        },
+      });
+    } catch (error) {
+      console.log("Error in Mail service: ", error);
+    }
+  }
+
+  private generatePassword(): string {
+    return randomBytes(12).toString('hex'); // Generates a 24-character hexadecimal string
   }
 
   async createAccessToken(user: any): Promise<string> {
