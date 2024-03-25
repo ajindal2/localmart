@@ -39,8 +39,8 @@ export class RatingService {
     try {
       // Step 1: Retrieve ratings and populate 'ratedBy' field
       const ratings = await this.ratingModel.find({ ratedUser: userId })
-      .populate('ratedBy', 'userName')
-      .populate('ratedUser', 'userName')
+      .populate('ratedBy', 'displayName')
+      .populate('ratedUser', 'displayName')
       .exec();
 
       if (!ratings || ratings.length === 0) {
@@ -91,15 +91,15 @@ export class RatingService {
 
       // Step 1: Retrieve ratings and populate 'ratedBy' field
       const ratings = await this.ratingModel.find({ ratedUser: seller.userId })
-                                            .populate('ratedBy', 'userName')
-                                            .populate('ratedUser', 'userName')
+                                            .populate('ratedBy', 'displayName')
+                                            .populate('ratedUser', 'displayName')
                                             .exec();
     
       // Step 2: Fetch the UserProfile of the seller
       const sellerProfile = await this.userProfileModel.findOne({ userId: seller.userId })
       .populate({
         path: 'userId',
-        select: 'userName date', // Only fetch the userName field
+        select: 'displayName date', // Only fetch the userName field
       })
       .exec();
       

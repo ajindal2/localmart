@@ -12,7 +12,7 @@ export class UserService {
   constructor(@InjectModel(User.name) private readonly userModel: Model<User>) { }
 
   async createUser(createUserDTO: CreateUserDTO): Promise<User> {
-    const { userName, emailAddress } = createUserDTO;
+    const { userName, displayName, emailAddress } = createUserDTO;
 
     // Check for existing user by username
     const existingUserByUsername = await this.userModel.findOne({ userName }).exec();
@@ -26,6 +26,12 @@ export class UserService {
       throw new ConflictException(`Email address '${emailAddress}' is already in use.`);
     }
 
+     // Check for existing user by displayName
+     const existingUserByDisplayName = await this.userModel.findOne({ displayName }).exec();
+     if (existingUserByDisplayName) {
+       throw new ConflictException(`Display Name '${displayName}' is already in use.`);
+     }
+     
     const newUser = await this.userModel.create(createUserDTO);
     newUser.password = await bcrypt.hash(newUser.password, 10);
     return newUser.save();

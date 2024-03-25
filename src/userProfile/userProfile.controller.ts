@@ -16,13 +16,13 @@ export class UserProfileController {
   @Post()
   @UsePipes(new ValidationPipe({ transform: true }))
   async createUserProfile(@Body() createUserProfileDto: CreateUserProfileDTO) {
-    return this.userProfileService.createUserProfile(createUserProfileDto);
+    return await this.userProfileService.createUserProfile(createUserProfileDto);
   }
 
-  @UseGuards(JwtAuthGuard)
+  //@UseGuards(JwtAuthGuard)
   @Get('/:userId')
   async getUserProfile(@Param('userId') userId: string) {    
-    return this.userProfileService.getUserProfile(userId);
+    return await this.userProfileService.getUserProfile(userId);
   }
 
   @Get('/:userId/location')

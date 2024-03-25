@@ -34,7 +34,9 @@ export class UserProfileService {
       return userProfile;
     } catch (error) {
       console.error(`Error fetching user profile for userId ${userId}`, error);
-      if (error.name === 'ValidationError') {
+      if (error.name === 'NotFoundException') {
+        throw error;
+      } else if (error.name === 'ValidationError') {
         throw new BadRequestException('DB Validation failed');
       } else {
         throw new InternalServerErrorException('An unexpected error occurred');

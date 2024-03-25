@@ -27,16 +27,16 @@ export class ChatService {
         // Repopulate the newly saved chat with listing details
         chat = await this.chatModel.findById(chat._id)
         .populate({ path: 'listingId' }) // Populate listing object. This is needed on FE to redirect to Viewlisting whne user clicks on listing header in the chat screen.
-        .populate({ path: 'sellerId', select: 'userName' })
-          .populate({ path: 'buyerId', select: 'userName' }) 
-          .populate({path: 'messages.senderId', select: 'userName'})
+        .populate({ path: 'sellerId', select: 'displayName' })
+          .populate({ path: 'buyerId', select: 'displayName' }) 
+          .populate({path: 'messages.senderId', select: 'displayName'})
       } else {
         // Ensure the chat is populated with listing details even if it already existed
         chat = await this.chatModel.findById(chat._id)
         .populate({ path: 'listingId' }) // Populate listing object. This is needed on FE to redirect to Viewlisting whne user clicks on listing header in the chat screen.
-        .populate({ path: 'sellerId', select: 'userName' })
-          .populate({ path: 'buyerId', select: 'userName' }) 
-          .populate({path: 'messages.senderId', select: 'userName'})
+        .populate({ path: 'sellerId', select: 'displayName' })
+          .populate({ path: 'buyerId', select: 'displayName' }) 
+          .populate({path: 'messages.senderId', select: 'displayName'})
       }
       return chat.toObject(); // Convert the Mongoose document to a plain JavaScript object
     } catch (error) {
@@ -118,9 +118,9 @@ export class ChatService {
         $or: [{ sellerId: userId }, { buyerId: userId }],
       })
       .populate('listingId')
-      .populate({ path: 'sellerId', select: 'userName' })
-      .populate({ path: 'buyerId', select: 'userName' })
-      .populate({path: 'messages.senderId', select: 'userName'})
+      .populate({ path: 'sellerId', select: 'displayName' })
+      .populate({ path: 'buyerId', select: 'displayName' })
+      .populate({path: 'messages.senderId', select: 'displayName'})
       .exec();
   
       if (!chats || chats.length === 0) {
@@ -162,9 +162,9 @@ export class ChatService {
       // Fetch chat by chatId
       const chat = await this.chatModel.findById(chatId)
       .populate({ path: 'listingId' }) // Populate listing object
-      .populate({ path: 'sellerId', select: 'userName' }) // Populate seller details
-      .populate({ path: 'buyerId', select: 'userName' }) // Populate buyer details
-      .populate({path: 'messages.senderId', select: 'userName'})
+      .populate({ path: 'sellerId', select: 'displayName' }) // Populate seller details
+      .populate({ path: 'buyerId', select: 'displayName' }) // Populate buyer details
+      .populate({path: 'messages.senderId', select: 'displayName'})
       .exec();
   
       if (!chat) {
