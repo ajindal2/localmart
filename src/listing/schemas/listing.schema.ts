@@ -41,7 +41,7 @@ export class Listing {
     @Prop({ default: Date.now })
     dateCreated: Date; // Date when the listing was created
     
-    @Prop({ type: LocationSchema })
+    @Prop({ required: true, type: LocationSchema })
     location: typeof LocationSchema;
   }
 

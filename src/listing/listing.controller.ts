@@ -17,7 +17,7 @@ export class ListingController {
   async getListings(
     @Query() queryListingDTO: QueryListingDTO,
     @Query('page', ParseIntPipe) page: number = 1,  // Default to page 1 if not specified or if parsing fails
-    @Query('limit', ParseIntPipe) limit: number = 10  // Default to 10 items per page if not specified or if parsing fails
+    @Query('limit', ParseIntPipe) limit: number = 50  // Default to 10 items per page if not specified or if parsing fails
   ): Promise<PaginatedListingsResult> {
     const paginationOptions = { page, limit };
     if (Object.keys(queryListingDTO).length) {

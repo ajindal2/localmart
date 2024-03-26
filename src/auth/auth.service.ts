@@ -61,7 +61,7 @@ export class AuthService {
       const newPassword = this.generatePassword(); 
       await this.userService.updateSystemPassword(user._id, newPassword); 
 
-      this.mailerService.sendMail({
+      await this.mailerService.sendMail({
         //to: email,
         to: 'aanchaljindal@gmail.com',
         from: 'rahulgarg123@yahoo.com',
@@ -70,6 +70,8 @@ export class AuthService {
         context: {
           password: newPassword,
         },
+      }).catch((mailError) => {
+        console.error("Error sending email: ", mailError);
       });
     } catch (error) {
       console.log("Error in Mail service: ", error);
@@ -86,7 +88,7 @@ export class AuthService {
         return;
       }
 
-      this.mailerService.sendMail({
+      await this.mailerService.sendMail({
         //to: email,
         to: 'aanchaljindal@gmail.com',
         from: 'rahulgarg123@yahoo.com',
@@ -95,6 +97,8 @@ export class AuthService {
         context: {
           userName: user.userName,
         },
+      }).catch((mailError) => {
+        console.error("Error sending email: ", mailError);
       });
     } catch (error) {
       console.log("Error in Mail service: ", error);

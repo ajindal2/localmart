@@ -4,6 +4,7 @@ import { UserService } from 'src/user/user.service';
 import { CreateUserDTO } from 'src/user/dtos/create-user.dto';
 import { LocalAuthGuard } from 'src/auth/guards/local-auth.guard';
 import { RefreshTokenDTO } from './dtos/fresh-token.dto';
+import { SkipThrottle, Throttle, ThrottlerGuard } from '@nestjs/throttler';
 
 
 @Controller('auth')
@@ -37,26 +38,23 @@ export class AuthController {
   }
 
   @Post('forgot-password')
+  @UseGuards(ThrottlerGuard) // Apply ThrottlerGuard
+  @Throttle({ default: { limit: 5, ttl: 60000 } })
   async forgotPassword(@Body('email') email: string): Promise<{ message: string }> {
     await this.authService.handleForgotPassword(email);
     return { message: 'If your email address is registered with us, you will receive an email with a new password.' };
   }
 
   @Post('forgot-username')
+  @UseGuards(ThrottlerGuard) // Apply ThrottlerGuard
+  @Throttle({ default: { limit: 5, ttl: 60000 } })
   async forgotUserName(@Body('email') email: string): Promise<{ message: string }> {
     await this.authService.handleForgotUserName(email);
     return { message: 'If your email address is registered with us, you will receive an email with your username.' };
   }
 
-  /*@Post('/refresh')
-  @UseGuards(AuthGuard('jwt-refresh'))
-  async refresh(@Req() req: any, @Body() body: RefreshTokenDTO) {
-    const user = req.user;
-    const accessToken = await this.authService.createAccessToken(user);
-    return { accessToken };
-  }*/
-
   @Post('/refresh')
+  @SkipThrottle()
   async refresh(@Body() refreshTokenDto: RefreshTokenDTO) {
     const { access_token, refresh_token } = await this.authService.refreshToken(refreshTokenDto.refreshToken);
     if (!access_token) {

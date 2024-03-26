@@ -3,7 +3,7 @@ import { IsString, IsNumber, IsOptional, IsNotEmpty, IsMongoId, IsArray, ArrayNo
 import { LocationDTO } from 'src/location/dtos/location.dto';
 
 export class CreateListingDTO {
-    @IsNotEmpty()
+    @IsNotEmpty({ message: 'Title cannot be empty' })
     @IsString()
     title: string;
 
@@ -11,7 +11,7 @@ export class CreateListingDTO {
     @IsString()
     description?: string;
 
-    @IsNotEmpty()
+    @IsNotEmpty({ message: 'Price cannot be empty' })
     @IsNumber()
     price: number;
 
@@ -25,7 +25,7 @@ export class CreateListingDTO {
     sellerId: string; // This should be the seller's ObjectId as a string
 
     @IsNotEmpty()
-    @IsIn(['active', 'archive', 'sold'])
+    @IsIn(['Available', 'Sold'])
     state: string; // State of the listing
 
     @ValidateNested()
