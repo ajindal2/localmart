@@ -11,6 +11,10 @@ import { UpdatePasswordDTO } from './dtos/update-password.dto';
 export class UserService {
   constructor(@InjectModel(User.name) private readonly userModel: Model<User>) { }
 
+  async findAll(): Promise<User[]> {
+    return this.userModel.find().exec();
+  }
+  
   async createUser(createUserDTO: CreateUserDTO): Promise<User> {
     const { userName, displayName, emailAddress } = createUserDTO;
 
@@ -52,7 +56,6 @@ export class UserService {
   }
 
   async updatePassword(userId: string, updatePasswordDto: UpdatePasswordDTO): Promise<void> {
-    console.log('Inside uodatePwd service');
     const { currentPassword, newPassword } = updatePasswordDto;
     try {
       const user = await this.userModel.findById(userId);
@@ -72,7 +75,9 @@ export class UserService {
       await user.save();
     } catch (error) {
       console.error(`Error updating password for userId ${userId}`, error);
-      if (error.name === 'ValidationError') {
+      if (error.name === 'NotFoundException') {
+        throw error;
+      } else if (error.name === 'ValidationError') {
         throw new BadRequestException('DB Validation failed');
       } else {
         throw new InternalServerErrorException('An unexpected error occurred');
@@ -81,7 +86,7 @@ export class UserService {
   }
 
   async findByUsername(userName: string): Promise<User> {
-    return this.userModel.findOne({ userName }).exec();
+    return await this.userModel.findOne({ userName }).exec();
   }
 
   // Fetch a user by ID
@@ -107,18 +112,28 @@ export class UserService {
   }
 
   async updatePushToken(userId: string, pushToken: string): Promise<User> {
-    const user = await this.userModel.findById(userId).exec();
-    if (!user) {
-      throw new NotFoundException(`User with ID ${userId} not found`);
-    }
+    try {
+      const user = await this.userModel.findById(userId).exec();
+      if (!user) {
+        throw new NotFoundException(`User with ID ${userId} not found`);
+      }
+      
+      // If the user already has this pushToken, no need to add it again
+      if (!user.pushTokens.includes(pushToken)) {
+        user.pushTokens.push(pushToken);
+        await user.save();
+      }
     
-    // If the user already has this pushToken, no need to add it again
-    if (!user.pushTokens.includes(pushToken)) {
-      user.pushTokens.push(pushToken);
-      await user.save();
+      return user;
+    } catch (error) {
+      console.error(`Error updating push token for userId ${userId}`, error);
+      if (error.name === 'NotFoundException') {
+        throw error;
+      } else if (error.name === 'ValidationError') {
+        throw new BadRequestException('DB validation failed');
+      } else {
+        throw new InternalServerErrorException('An unexpected error occurred');
+      }
     }
-  
-    return user;
   }
-  
 }

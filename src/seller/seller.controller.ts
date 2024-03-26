@@ -37,7 +37,7 @@ export class SellerController {
   @Get('/:userId/location')
   @UseGuards(JwtAuthGuard)
   async getSellerLocation(@Param('userId') userId: string) {
-    return this.sellerService.getSellerLocation(userId);
+    return await this.sellerService.getSellerLocation(userId);
   }}
 
 

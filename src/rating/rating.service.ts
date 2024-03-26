@@ -20,11 +20,11 @@ export class RatingService {
       ratedBy: userId,
       dateGiven: new Date(),
     });
-    return newRating.save();
+    return await newRating.save();
   }
 
   async findAllRatings(): Promise<Rating[]> {
-    return this.ratingModel.find().exec();
+    return await this.ratingModel.find().exec();
   }
 
   async findRatingById(id: string): Promise<Rating> {
@@ -134,47 +134,15 @@ export class RatingService {
       return { averageRating, ratingsWithProfile, sellerProfile };
     } catch (error) {
       console.error('Error fetching ratings with profiles:', error);
-      if (error.name === 'ValidationError') {
+      if (error.name === 'NotFoundException') {
+        throw error;
+      } else if (error.name === 'ValidationError') {
         throw new BadRequestException('Database validation failed in fetching ratings with profiles.');
       } else {
         throw new InternalServerErrorException('An unexpected error occurred in fetching ratings with profiles');
       }
     }
   }
-  
-  /*async findRatingsBySellerId(sellerId: string): Promise<{averageRating: number, ratings: Rating[]}> {
-    if (!sellerId) {
-      throw new NotFoundException('Seller ID is required.');
-    }
-    // Fetch the userId from the sellerId
-    const seller = await this.sellerModel.findById(sellerId).exec();
-    if (!seller) {
-      throw new Error('Seller not found');
-    }
-
-    const ratings = await this.ratingModel.find({ ratedUser: sellerId })
-                                           .populate('ratedBy', 'userName')
-                                           .exec();
-
-    if (!ratings || ratings.length === 0) {
-      throw new NotFoundException(`No ratings found for seller with ID ${sellerId}.`);
-    }
-
-    let sum = 0;
-    ratings.forEach(rating => {
-      sum += rating.stars;
-    });
-
-    const averageRating = ratings.length > 0 ? sum / ratings.length : 0;
-
-    // Another way to calculate average
-    // const averageRating = ratings.reduce((acc, rating) => acc + rating.stars, 0) / ratings.length;
-
-    return {
-      averageRating,
-      ratings
-    };  
-  }*/
 
   async deleteRating(id: string, userId: string): Promise<Rating> {
    const rating = await this.ratingModel.findOneAndDelete({ _id: id, ratedBy: userId }).exec();

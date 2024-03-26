@@ -126,19 +126,6 @@ export class ChatService {
       if (!chats || chats.length === 0) {
         throw new NotFoundException(`No chats found for user with id ${userId}`);
       }
-
-      /*chats.forEach((chat, chatIndex) => {
-        console.log(`Chat ${chatIndex + 1}:`, chat); // Log the chat object itself
-
-        // If the chat has messages, iterate over them
-        if (chat.messages && chat.messages.length > 0) {
-          chat.messages.forEach((message, messageIndex) => {
-            console.log(`Message ${messageIndex + 1} in Chat ${chatIndex + 1}:`, message);
-          });
-        } else {
-          console.log(`Chat ${chatIndex + 1} has no messages.`);
-        }
-      });*/
   
       // Calculate unread messages for each chat
       const chatsWithUnread = chats.map(chat => {
@@ -150,10 +137,14 @@ export class ChatService {
         };
       });
   
-      //console.log('chatsWithUnread: ', chatsWithUnread);
       return chatsWithUnread;
     } catch (error) {
-      throw new HttpException('Error getting chats', HttpStatus.INTERNAL_SERVER_ERROR);
+      console.error(`Error getting chats for user ${userId}`, error);
+      if (error.name === 'NotFoundException') {
+        throw error;
+      } else {
+        throw new HttpException('Error getting chats', HttpStatus.INTERNAL_SERVER_ERROR);
+      }
     }
   }
 
@@ -172,7 +163,12 @@ export class ChatService {
       }
       return chat;
     } catch (error) {
-      throw new HttpException('Error getting chat', HttpStatus.INTERNAL_SERVER_ERROR);
+      console.error(`Error deleting chat for chatId ${chatId}`, error);
+      if (error.name === 'NotFoundException') {
+        throw error;
+      } else {
+        throw new HttpException('Error getting chat', HttpStatus.INTERNAL_SERVER_ERROR);
+      }
     }
   }
 
@@ -185,7 +181,9 @@ export class ChatService {
       }
     } catch (error) {
       console.error(`Error deleting chat ${chatId}`, error);
-      if (error.name === 'ValidationError') {
+      if (error.name === 'NotFoundException') {
+        throw error;
+      } else if (error.name === 'ValidationError') {
         throw new BadRequestException('DB validation failed');
       } else {
         throw new InternalServerErrorException('An unexpected error occurred');

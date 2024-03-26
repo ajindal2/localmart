@@ -20,17 +20,17 @@ export class RatingController {
       throw new UnauthorizedException('User ID not found in request');
     }
 
-    return this.ratingService.createRating(userId, createRatingDto);
+    return await this.ratingService.createRating(userId, createRatingDto);
   }
 
   @Get()
   async getAllRatings() {
-    return this.ratingService.findAllRatings();
+    return await this.ratingService.findAllRatings();
   }
 
   @Get(':id')
   async getRatingById(@Param('id') id: string) {
-    return this.ratingService.findRatingById(id);
+    return await this.ratingService.findRatingById(id);
   }
 
   @Get('seller/:sellerId')
@@ -59,6 +59,6 @@ export class RatingController {
       throw new UnauthorizedException('User ID not found in request');
     }
 
-    return this.ratingService.deleteRating(id, userId);
+    return await this.ratingService.deleteRating(id, userId);
   }
 }

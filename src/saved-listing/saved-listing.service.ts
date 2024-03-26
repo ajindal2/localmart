@@ -22,7 +22,7 @@ export class SavedListingService {
       } else {
         // If not, create a new saved listing
         const newSavedListing = new this.savedListingModel(createSavedListingDto);
-        return newSavedListing.save();
+        return await newSavedListing.save();
       }
     } catch (error) {
       console.error('Error creating saved listing:', error);
@@ -49,7 +49,9 @@ export class SavedListingService {
     return savedListings;
     } catch (error) {
       console.error(`Error fetching saved listings for ${userId}:`, error);
-      if (error.name === 'ValidationError') {
+      if (error.name === 'NotFoundException') {
+        throw error;
+      } else if (error.name === 'ValidationError') {
         throw new BadRequestException('DB Validation failed');
       } else {
         throw new InternalServerErrorException('An unexpected error occurred');
@@ -59,7 +61,7 @@ export class SavedListingService {
 
   async remove(id: string): Promise<SavedListing> {
     try {
-      return this.savedListingModel.findByIdAndRemove(id).exec();
+      return await this.savedListingModel.findByIdAndRemove(id).exec();
     } catch (error) {
       console.error('Error deleting saved listing:', error);
   

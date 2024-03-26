@@ -36,7 +36,7 @@ export class UserProfileController {
   @Put('/:userId')
   @UsePipes(new ValidationPipe({ transform: true }))
   async updateUserProfile(@Param('userId') userId: string, @Body() updateUserProfileDto: UpdateUserProfileDTO) {
-    return this.userProfileService.createOrUpdateProfile(userId, updateUserProfileDto);
+    return await this.userProfileService.createOrUpdateProfile(userId, updateUserProfileDto);
   }
 
   @Delete('/:userId')

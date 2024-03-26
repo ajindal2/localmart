@@ -136,7 +136,7 @@ export class AuthService {
   }
 
   async findRefreshToken(token: string): Promise<RefreshToken> {
-    return this.refreshTokenModel.findOne({ token }).exec();
+    return await this.refreshTokenModel.findOne({ token }).exec();
   }
 
   async validateRefreshToken(token: string): Promise<any> {
@@ -171,7 +171,11 @@ export class AuthService {
       return await this.userService.findByUserId(payload.userId);
     } catch (error) {
       console.error('Error in validateRefreshToken:', error);
-      throw error; // Re-throw the error so it can be caught and handled by the calling function
+      if (error.name === 'NotFoundException') {
+        throw error;
+      } else {
+        throw error; // Re-throw the error so it can be caught and handled by the calling function
+      }
     }
   }
 
@@ -198,7 +202,11 @@ export class AuthService {
       };
     } catch (error) {
       console.error('Error in refreshToken:', error);
-      throw error; // Re-throw the error so it can be caught and handled by the calling function
+      if (error.name === 'UnauthorizedException') {
+        throw error;
+      } else {
+        throw error; // Re-throw the error so it can be caught and handled by the calling function
+      }
     }
   }
 }

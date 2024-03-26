@@ -13,15 +13,7 @@ export class UserProfileService {
 
   async createUserProfile(createUserProfileDto: CreateUserProfileDTO): Promise<UserProfile> {
     const newUserProfile = await this.userProfileModel.create(createUserProfileDto);
-    return newUserProfile.save();
-  }
-
-  async updateUserProfile(userId: string, updateUserProfileDto: UpdateUserProfileDTO): Promise<UserProfile> {
-    const updatedUserProfile =  await this.userProfileModel.findOneAndUpdate({ userId: userId }, updateUserProfileDto, { new: true });
-    if (!updatedUserProfile) {
-        throw new NotFoundException(`UserProfile with user ID ${userId} not found`);
-      }
-      return updatedUserProfile;
+    return await newUserProfile.save();
   }
 
   async getUserProfile(userId: string): Promise<UserProfile> {
@@ -45,14 +37,25 @@ export class UserProfileService {
   }
 
   async getUserLocation(userId: string) {
-    const objectId = new mongoose.Types.ObjectId(userId);
-    const userProfile = await this.userProfileModel.findOne({ userId: objectId  });
-    if (!userProfile) {
-      console.log('User profile not found to fetch user location ');
-      // Impotant to thro thsi exception since it is a 404 and we are checking for 404 in the FE
-      throw new NotFoundException('User profile not found');
+    try {
+      const objectId = new mongoose.Types.ObjectId(userId);
+      const userProfile = await this.userProfileModel.findOne({ userId: objectId  });
+      if (!userProfile) {
+        console.log('User profile not found to fetch user location ');
+        // Impotant to thro thsi exception since it is a 404 and we are checking for 404 in the FE
+        throw new NotFoundException('User profile not found');
+      }
+      return userProfile.location || null;
+    } catch (error) {
+      console.error(`Error fetching user location for userId ${userId}`, error);
+      if (error.name === 'NotFoundException') {
+        throw error;
+      } else if (error.name === 'ValidationError') {
+        throw new BadRequestException('DB Validation failed');
+      } else {
+        throw new InternalServerErrorException('An unexpected error occurred');
+      }
     }
-    return userProfile.location || null;
   }
 
   async deleteUserProfile(userId: string): Promise<void> {
@@ -83,7 +86,7 @@ export class UserProfileService {
         const locationData = this.convertLocationDtoToSchema(updateUserProfileDto.location);
         userProfile.location = locationData;
       }
-      return userProfile.save();
+      return await userProfile.save();
     } catch (error) {
       console.error(`Error creating/ updating user profile for userId ${userId}`, error);
       if (error.name === 'ValidationError') {

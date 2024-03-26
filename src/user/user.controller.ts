@@ -9,6 +9,11 @@ import { UpdatePasswordDTO } from './dtos/update-password.dto';
 export class UserController {
   constructor(private userService: UserService) {}
 
+  @Get()
+  findAll() {
+    return this.userService.findAll();
+  }
+  
   @Get('/:userId')
   @UseGuards(JwtAuthGuard)
   async getUser(@Param('userId') userId: string) {
@@ -21,7 +26,7 @@ export class UserController {
   @Put('/:id')
   @UsePipes(new ValidationPipe({ transform: true }))
   async update(@Param('id') id: string, @Body() updateUserDto: UpdateUserDTO) {
-    return this.userService.updateById(id, updateUserDto);
+    return await this.userService.updateById(id, updateUserDto);
   }
 
   @Post('/')
@@ -52,6 +57,6 @@ export class UserController {
     }
   }))
   async updatePassword(@Param('id') userId: string, @Body() updatePasswordDto: UpdatePasswordDTO) {
-    return this.userService.updatePassword(userId, updatePasswordDto);
+    return await this.userService.updatePassword(userId, updatePasswordDto);
   }
 }

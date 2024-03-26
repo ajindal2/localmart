@@ -85,7 +85,9 @@ export class ListingService {
         };
        } catch (error) {
         console.error('Error fetching listings:', error);
-        if (error.name === 'ValidationError') {
+        if (error.name === 'NotFoundException') {
+          throw error;
+        } else if (error.name === 'ValidationError') {
           throw new BadRequestException('DB validation failed');
         } else {
           throw new InternalServerErrorException('An unexpected error occurred');
@@ -121,7 +123,9 @@ export class ListingService {
         };
       } catch (error) {
         console.error('Error fetching listings:', error);
-        if (error.name === 'ValidationError') {
+        if (error.name === 'NotFoundException') {
+          throw error;
+        } else if (error.name === 'ValidationError') {
           throw new BadRequestException('DB Validation failed');
         } else {
           throw new InternalServerErrorException('An unexpected error occurred');
@@ -142,8 +146,10 @@ export class ListingService {
     }
     return listings;
   } catch (error) {
-    console.error(`Error fetching listings for userId ${userId}`, error);
-      if (error.name === 'ValidationError') {
+      console.error(`Error fetching listings for userId ${userId}`, error);
+      if (error.name === 'NotFoundException') {
+        throw error;
+      } else if (error.name === 'ValidationError') {
         throw new BadRequestException('DB Validation failed');
       } else {
         throw new InternalServerErrorException('An unexpected error occurred');
@@ -210,7 +216,9 @@ export class ListingService {
       return await listing.save();
     } catch (error) {
       console.error(`Error updating listing ${listingId}`, error);
-      if (error.name === 'ValidationError') {
+      if (error.name === 'NotFoundException') {
+        throw error;
+      } else if (error.name === 'ValidationError') {
         throw new BadRequestException('DB validation failed');
       } else {
         throw new InternalServerErrorException('An unexpected error occurred');
@@ -227,7 +235,9 @@ export class ListingService {
       }
     } catch (error) {
       console.error(`Error deleting listing ${listingId}`, error);
-      if (error.name === 'ValidationError') {
+      if (error.name === 'NotFoundException') {
+        throw error;
+      } else if (error.name === 'ValidationError') {
         throw new BadRequestException('DB validation failed');
       } else {
         throw new InternalServerErrorException('An unexpected error occurred');
@@ -244,10 +254,12 @@ export class ListingService {
         throw new NotFoundException(`Listing not found`);
       }
       listing.state = newStatus;
-      return listing.save();
+      return await listing.save();
     } catch (error) {
       console.error(`Error marking listing as sold ${listingId}`, error);
-      if (error.name === 'ValidationError') {
+      if (error.name === 'NotFoundException') {
+        throw error;
+      } else if (error.name === 'ValidationError') {
         throw new BadRequestException('DB validation failed');
       } else {
         throw new InternalServerErrorException('An unexpected error occurred');
@@ -433,38 +445,6 @@ private convertLocationDtoToSchema(locationDto: LocationDTO): any {
 
   return location;
 }
-
-  /*async createListing(userId: string, createListingDto: CreateListingDTO): Promise<Listing> {
-    // Check if seller exists, if not, create one
-    console.log('Inside service method of createListing. Logging passedin useerId: ', userId);
-    let seller = await this.sellerModel.findOne({ user: userId });
-    if (!seller) {
-      console.log('Inside seller does not exist');
-      seller = new this.sellerModel({ user: userId });
-      await seller.save();
-    }
-
-    console.log('Logging sellerId: ', seller._id);
-    // Create a new listing
-    const newListing = new this.listingModel({
-      ...createListingDto,
-      seller: seller._id,
-      state: 'active',
-    });
-
-    // Update the seller location
-    await this.updateSellerLocationIfNeeded(seller, createListingDto.location);
-    return await newListing.save();
-  }
-
-  private async updateSellerLocationIfNeeded(seller: Seller, newLocation: LocationDTO): Promise<void> {
-
-    // Compare the new location with the seller's current location
-    if (JSON.stringify(seller.location) !== JSON.stringify(newLocation)) {
-      seller.location = newLocation;
-      await seller.save();
-    }
-  }*/
 }
 
 interface GeoJSONPoint {

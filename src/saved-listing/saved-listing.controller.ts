@@ -10,24 +10,24 @@ export class SavedListingController {
   @Post()
   @UseGuards(JwtAuthGuard)
   async create(@Body() createSavedListingDto: CreateSavedListingDTO) {
-    const listSaved = this.savedListingService.create(createSavedListingDto);
+    const listSaved = await this.savedListingService.create(createSavedListingDto);
     return listSaved;
   }
 
   @Get('/:userId')
   @UseGuards(JwtAuthGuard)
   async findAllByUser(@Param('userId') userId: string) {
-    return this.savedListingService.findAllByUser(userId);
+    return await this.savedListingService.findAllByUser(userId);
   }
 
   @Delete('/:id')
   @UseGuards(JwtAuthGuard)
   async remove(@Param('id') id: string) {
-    return this.savedListingService.remove(id);
+    return await this.savedListingService.remove(id);
   }
 
   @Get('check-status/:userId/:listingId')
   async checkSavedStatus(@Param('userId') userId: string, @Param('listingId') listingId: string) {
-    return this.savedListingService.checkSavedStatus(userId, listingId);
+    return await this.savedListingService.checkSavedStatus(userId, listingId);
   }
 }

@@ -15,7 +15,7 @@ export class SellerService {
 
   async create(createSellerDto: CreateSellerDTO): Promise<Seller> {
     const newSeller = new this.sellerModel(createSellerDto);
-    return newSeller.save();
+    return await newSeller.save();
   }
 
   async findById(sellerId: string): Promise<Seller> {

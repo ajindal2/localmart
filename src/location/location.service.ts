@@ -29,7 +29,6 @@ export class LocationService {
             const url = `https://maps.googleapis.com/maps/api/geocode/json?latlng=${lat},${lng}&key=AIzaSyCjS6WbSux7d1QQcjENuojKTvAzAtH9xn8`;
             const response = await fetch(url);
             const data = await response.json();
-            console.log('After fetching url: ', data);
 
             if (data.status === 'OK' && data.results.length > 0) {
                 // Check if the result is in the US

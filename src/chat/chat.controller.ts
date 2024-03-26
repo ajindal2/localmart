@@ -13,13 +13,13 @@ export class ChatController {
   @UseGuards(JwtAuthGuard)
   @Post()
   async createChat(@Body() createChatDTO: CreateChatDTO) {
-    return this.chatService.createChat(createChatDTO);
+    return await this.chatService.createChat(createChatDTO);
   }
 
   @UseGuards(JwtAuthGuard)
   @Post(':chatId/message')
   async addMessageToChat(@Param('chatId') chatId: string, @Body() createMessageDTO: CreateMessageDTO) {
-    return this.chatService.addMessageToChat(new Types.ObjectId(chatId), createMessageDTO);
+    return await this.chatService.addMessageToChat(new Types.ObjectId(chatId), createMessageDTO);
   }
 
   @UseGuards(JwtAuthGuard)
@@ -33,19 +33,19 @@ export class ChatController {
   @UseGuards(JwtAuthGuard)
   @Get('/:userId')
   async getChats(@Param('userId') userId: string) {
-    return this.chatService.getChats(userId);
+    return await this.chatService.getChats(userId);
   }
 
   @UseGuards(JwtAuthGuard)
   @Delete('/:chatId')
   async deleteChat(@Param('chatId') chatId: string) {
-    return this.chatService.deleteChat(chatId);
+    return await this.chatService.deleteChat(chatId);
   }
 
   @UseGuards(JwtAuthGuard)
   @Get('/:userId/notificationCount')
   async getNotificationCount(@Param('userId') userId: string) {
-    return this.chatService.getNotificationCount(userId);
+    return await this.chatService.getNotificationCount(userId);
   }
 
   @UseGuards(JwtAuthGuard)

@@ -74,7 +74,7 @@ export class ListingController {
       createListingDto.imageUrls = imageUrls;
 
       // Now call the service method to create the listing
-      return this.listingService.createListing(userId, createListingDto);
+      return await this.listingService.createListing(userId, createListingDto);
     }
 
   @UseGuards(JwtAuthGuard)
@@ -121,27 +121,27 @@ export class ListingController {
 
     // Add the image URLs to the DTO
     updateListingDto.imageUrls = imageUrls;
-    return this.listingService.updateListing(id, updateListingDto);
+    return await this.listingService.updateListing(id, updateListingDto);
   }
 
   // Get listings for a specific user
   @UseGuards(JwtAuthGuard)
   @Get('/user/:userId')
   async findListingsByUser(@Param('userId') userId: string) {
-    return this.listingService.findListingsByUser(userId);
+    return await this.listingService.findListingsByUser(userId);
   }
 
   // Delete a listing
   @UseGuards(JwtAuthGuard)
   @Delete('/:listingId')
   async deleteListing(@Param('listingId') listingId: string) {
-    return this.listingService.deleteListing(listingId);
+    return await this.listingService.deleteListing(listingId);
   }
 
   // Update listing status
   @UseGuards(JwtAuthGuard)
   @Patch('/:listingId/status')
   async updateListingStatus(@Param('listingId') listingId: string, @Body('status') status: 'Sold') {
-    return this.listingService.updateListingStatus(listingId, status);
+    return await this.listingService.updateListingStatus(listingId, status);
   }
 }
