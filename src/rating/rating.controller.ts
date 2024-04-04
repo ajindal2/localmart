@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, NotFoundException, Param, Post, Req, UnauthorizedException, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, NotFoundException, Param, Post, Query, Req, UnauthorizedException, UseGuards } from '@nestjs/common';
 import { RatingService } from './rating.service';
 import { CreateRatingDTO } from './dtos/create-rating.dto';
 import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
@@ -7,7 +7,7 @@ import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
 export class RatingController {
   constructor(private ratingService: RatingService) {}
 
-  @Post()
+  /*@Post()
   @UseGuards(JwtAuthGuard)
   async createRating(@Req() req, @Body() createRatingDto: CreateRatingDTO) {
     if (!req.user) {
@@ -21,6 +21,20 @@ export class RatingController {
     }
 
     return await this.ratingService.createRating(userId, createRatingDto);
+  }*/
+
+  @Post()
+  @UseGuards(JwtAuthGuard) 
+  async createRating(@Body() createRatingDTO: CreateRatingDTO) {
+    return await this.ratingService.createRating(createRatingDTO);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Get('/exists')
+  async checkRatingExists(@Query('listingId') listingId: string, 
+    @Query('ratedBy') ratedBy: string, @Query('ratedUser') ratedUser: string,
+  ) {
+    return this.ratingService.checkRatingExists(listingId, ratedBy, ratedUser);
   }
 
   @Get()
@@ -47,7 +61,6 @@ export class RatingController {
   }
 
   @Delete(':id')
-  @UseGuards(JwtAuthGuard)
   @UseGuards(JwtAuthGuard)
   async deleteRating(@Req() req, @Param('id') id: string) {
     if (!req.user) {

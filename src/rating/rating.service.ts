@@ -1,26 +1,70 @@
-import { BadRequestException, Injectable, InternalServerErrorException, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ConflictException, Injectable, InternalServerErrorException, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { Rating } from './schemas/rating.schema';
 import { CreateRatingDTO } from './dtos/create-rating.dto';
 import { Seller } from 'src/seller/schemas/seller.schema';
 import { UserProfile } from 'src/userProfile/schemas/userProfile.schema';
+import { SavedListing } from 'src/saved-listing/schemas/saved-listing.schema';
 
 @Injectable()
 export class RatingService {
-    constructor(
-        @InjectModel(Rating.name) private readonly ratingModel: Model<Rating>,
-        @InjectModel(Seller.name) private readonly sellerModel: Model<Seller>,
-        @InjectModel(UserProfile.name) private readonly userProfileModel: Model<UserProfile>,
-        ) { }
+  constructor(
+      @InjectModel(Rating.name) private readonly ratingModel: Model<Rating>,
+      @InjectModel(Seller.name) private readonly sellerModel: Model<Seller>,
+      @InjectModel(UserProfile.name) private readonly userProfileModel: Model<UserProfile>,
+      ) { }
 
-  async createRating(userId: string, createRatingDto: CreateRatingDTO): Promise<Rating> {
-    const newRating = new this.ratingModel({
-      ...createRatingDto,
-      ratedBy: userId,
-      dateGiven: new Date(),
-    });
-    return await newRating.save();
+  async createRating(createRatingDTO: CreateRatingDTO): Promise<Rating> {
+    try {
+      const ratingExists = await this.checkRatingExists(createRatingDTO.listingId, createRatingDTO.ratedBy, createRatingDTO.ratedUser);
+      if (ratingExists) {
+        throw new ConflictException(`Rating has already been given`);
+      }
+      const newRating = new this.ratingModel({
+        ...createRatingDTO,
+        dateGiven: new Date(),
+      });
+      const savedRating = await newRating.save();
+      return savedRating;
+
+    } catch (error) {
+      if (error.code === 11000) {
+        // Handle duplicate key error (e.g., if you have unique constraints in your schema)
+        throw new ConflictException('Duplicate entry for rating.');
+      } else if (error.name === 'ValidationError') {
+        // Handle Mongoose validation errors
+        throw new BadRequestException('Validation failed for rating.');
+      } else if (error.name === 'ConflictException') {
+        throw error;
+      } else {
+        console.error('Error creating rating:', error);
+        throw new InternalServerErrorException('Failed to create rating.');
+      }
+    }
+  }
+
+  // Return true if it exists
+  async checkRatingExists(listingId: string, ratedBy: string, ratedUser: string): Promise<boolean> {
+    if (!listingId || !ratedBy || !ratedUser) {
+      throw new BadRequestException('Missing required parameters');
+    }
+
+    try {
+      const rating = await this.ratingModel.findOne({
+        listingId,
+        ratedUser: ratedUser,
+        ratedBy: ratedBy,
+      }).exec();
+      return !!rating; // Convert the result to a boolean
+    } catch (error) {
+      if (error.name === 'ValidationError') {
+        throw new BadRequestException('Validation failed for rating.');
+      } else {
+        console.error('Error creating rating:', error);
+        throw new InternalServerErrorException('Failed to check rating.');
+      }
+    }
   }
 
   async findAllRatings(): Promise<Rating[]> {

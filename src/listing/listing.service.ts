@@ -158,8 +158,23 @@ export class ListingService {
   }
 
   async getListing(id: string): Promise<Listing> {
-    const listing = await this.listingModel.findById(id).exec();
+    try {
+    const listing = await this.listingModel.findById(id);
+    if (!listing) {
+      console.log('ListingId not found: ', id);
+      throw new NotFoundException('Listing not found');
+    }
     return listing;
+    } catch (error) {
+      console.error(`Error getting listing from id ${id}`, error);
+      if (error.name === 'NotFoundException') {
+        throw error;
+      } else if (error.name === 'ValidationError') {
+        throw new BadRequestException('DB validation failed');
+      } else {
+        throw new InternalServerErrorException('An unexpected error occurred');
+      }
+    }
   }
 
   async updateListing(listingId: string, updateListingDto: UpdateListingDTO): Promise<Listing> {

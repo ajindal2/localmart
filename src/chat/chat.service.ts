@@ -1,6 +1,6 @@
 import { BadRequestException, HttpException, HttpStatus, Injectable, InternalServerErrorException, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model, Types } from 'mongoose';
+import mongoose, { Model, Types } from 'mongoose';
 import { Chat } from './schemas/chat.schema';
 import { Message } from './schemas/message.schema';
 import { CreateChatDTO } from './dtos/create-chat.dto';
@@ -8,13 +8,16 @@ import { CreateMessageDTO } from './dtos/create-message.dto';
 import { User } from 'src/user/schemas/user.schema';
 import axios from 'axios';
 import { NotificationsCounter } from './schemas/notifications-counter.schema';
+import { UserProfile } from 'src/userProfile/schemas/userProfile.schema';
 
 @Injectable()
 export class ChatService {
+  
   constructor(
     @InjectModel(Chat.name) private chatModel: Model<Chat>, 
     @InjectModel(Message.name) private messageModel: Model<Message>,
     @InjectModel(User.name) private userModel: Model<User>,
+    @InjectModel(UserProfile.name) private userProfileModel: Model<UserProfile>,
     @InjectModel(NotificationsCounter.name) private notificationsCounterModel: Model<NotificationsCounter>
   ) {}
 
@@ -28,15 +31,15 @@ export class ChatService {
         chat = await this.chatModel.findById(chat._id)
         .populate({ path: 'listingId' }) // Populate listing object. This is needed on FE to redirect to Viewlisting whne user clicks on listing header in the chat screen.
         .populate({ path: 'sellerId', select: 'displayName' })
-          .populate({ path: 'buyerId', select: 'displayName' }) 
-          .populate({path: 'messages.senderId', select: 'displayName'})
+        .populate({ path: 'buyerId', select: 'displayName' }) 
+        .populate({path: 'messages.senderId', select: 'displayName'})
       } else {
         // Ensure the chat is populated with listing details even if it already existed
         chat = await this.chatModel.findById(chat._id)
         .populate({ path: 'listingId' }) // Populate listing object. This is needed on FE to redirect to Viewlisting whne user clicks on listing header in the chat screen.
         .populate({ path: 'sellerId', select: 'displayName' })
-          .populate({ path: 'buyerId', select: 'displayName' }) 
-          .populate({path: 'messages.senderId', select: 'displayName'})
+        .populate({ path: 'buyerId', select: 'displayName' }) 
+        .populate({path: 'messages.senderId', select: 'displayName'})
       }
       return chat.toObject(); // Convert the Mongoose document to a plain JavaScript object
     } catch (error) {
@@ -44,6 +47,91 @@ export class ChatService {
     }
   }
 
+  async createSystemChat(buyerId: string, listingId: string): Promise<Chat> {
+    const SYSTEM_USER_ID = '660edb8ce2b6505ec2f589eb';
+
+    try {
+      const systemChatDTO: Partial<CreateChatDTO> = {
+        sellerId: SYSTEM_USER_ID,
+        buyerId: buyerId,
+        listingId: listingId, // Use listingId as part of the query to ensure uniqueness for this buyer and listing
+        isSystemMessage: true,
+      };
+  
+      // Try to find an existing chat that matches the buyer, listing, and system seller
+      let chat = await this.chatModel.findOne(systemChatDTO);
+      if (!chat) {
+        // If no existing chat is found, create a new one
+        chat = new this.chatModel(systemChatDTO);
+        await chat.save();
+      }
+  
+      // Construct the message DTO for the system message
+      const createMessageDTO: CreateMessageDTO = {
+        senderId: SYSTEM_USER_ID,
+        content: 'Please rate your experience with the seller. Click here to rate.',
+        sentAt: new Date(), // Optional, can be omitted to use the default server timestamp
+      };
+  
+      // Call addMessageToChat to add the system message to the chat. This will also send the notification to buyer.
+      const updatedChat = await this.addMessageToChat(chat._id, createMessageDTO);
+  
+      return updatedChat;
+    } catch (error) {
+      throw new HttpException('Error creating system chat', HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+  }
+  
+  /*async createSystemChat(createChatDTO: CreateChatDTO): Promise<Chat> {
+    const SYSTEM_USER_ID = "your_system_user_id_here"; // Replace this with your actual system user ID
+  
+    try {
+      const systemChatDTO = {
+        ...createChatDTO,
+        sellerId: SYSTEM_USER_ID
+      };
+  
+      // Check if a chat between the system and the buyer already exists
+      let chat = await this.chatModel.findOne(systemChatDTO);
+  
+      if (!chat) {
+    
+        chat = new this.chatModel(systemChatDTO);
+        await chat.save();
+  
+        // Repopulate the newly saved chat with necessary details
+        chat = await this.chatModel.findById(chat._id)
+        .populate({ path: 'listingId' }) // Populate listing object. This is needed on FE to redirect to Viewlisting whne user clicks on listing header in the chat screen.
+        .populate({ path: 'sellerId', select: 'displayName' })
+        .populate({ path: 'buyerId', select: 'displayName' }) 
+        .populate({path: 'messages.senderId', select: 'displayName'})
+      } else {
+        // Ideally a system generated chat should never exist for the given listing and buyer.
+        chat = await this.chatModel.findById(chat._id)
+        .populate({ path: 'listingId' }) // Populate listing object. This is needed on FE to redirect to Viewlisting whne user clicks on listing header in the chat screen.
+        .populate({ path: 'sellerId', select: 'displayName' })
+        .populate({ path: 'buyerId', select: 'displayName' }) 
+        .populate({path: 'messages.senderId', select: 'displayName'})
+      }
+  
+      //return chat.toObject(); // Convert the Mongoose document to a plain JavaScript object
+      // Construct the message DTO for the system message
+      const createMessageDTO: CreateMessageDTO = {
+        senderId: SYSTEM_USER_ID,
+        content: 'Please rate your experience. Click here to rate.', // Customize your message content as needed
+        sentAt: new Date(), // Optional, can be omitted to use the default server timestamp
+      };
+
+      // Call addMessageToChat to add the system message to the chat
+      const updatedChat = await this.addMessageToChat(chat._id, createMessageDTO);
+
+      return updatedChat;
+    } catch (error) {
+      console.error('Error creating system chat:', error);
+      throw new HttpException('Error creating system chat', HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+  }*/
+  
   async addMessageToChat(chatId: Types.ObjectId, createMessageDTO: CreateMessageDTO): Promise<Chat> {
     try {
       const message = new this.messageModel(createMessageDTO);
@@ -191,6 +279,46 @@ export class ChatService {
     }
   }
 
+  async getBuyersForListing(listingId: string, sellerId: string): Promise<any[]> {
+    try {
+      const chats = await this.chatModel.find({
+        listingId: listingId,
+        sellerId: sellerId,
+      })
+      .populate({ path: 'buyerId', select: 'userName' }) // Populate buyerId to get userName
+      .exec();
+
+      // Map over the chats to extract buyer information with profile picture
+      const buyersInfo = await Promise.all(chats.map(async chat => {
+
+      if (chat && chat.buyerId && 'userName' in chat.buyerId) {
+        // Fetch UserProfile for the populated buyerId
+        const userProfile = await this.userProfileModel.findOne({ userId: chat.buyerId._id }).exec();
+        if (!userProfile) {
+          throw new Error(`UserProfile not found for buyerId ${chat.buyerId._id}`);
+        }
+    
+        return {
+          buyerId: chat.buyerId._id,
+          userName: chat.buyerId.userName,
+          profilePicture: userProfile.profilePicture,
+        };
+      } else  {
+        throw new Error('Buyer information could not be retrieved.');
+      }
+    }));
+  
+    return buyersInfo;
+    } catch (error) {
+      console.error(`Error fetching buyer details for listing ${listingId} and seller ${sellerId}`, error);
+      if (error.name === 'NotFoundException' || error.name === 'BadRequestException') {
+        throw error;
+      } else {
+        throw new HttpException('Error fetching buyer details', HttpStatus.INTERNAL_SERVER_ERROR);
+      }    
+    }
+  }
+  
   async getNotificationCount(userId: string): Promise<number> {
     try {
       const notificationsCounter = await this.notificationsCounterModel.findOne({ userId: userId }).exec();

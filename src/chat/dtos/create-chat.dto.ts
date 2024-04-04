@@ -16,6 +16,10 @@ export class CreateChatDTO {
   @IsOptional()
   @IsBoolean()
   read?: boolean; // Make read optional, defaulting to false
+
+  @IsOptional()
+  @IsBoolean()
+  isSystemMessage?: boolean;
 }
 
 

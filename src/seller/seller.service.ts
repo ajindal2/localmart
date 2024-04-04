@@ -26,6 +26,50 @@ export class SellerService {
     return seller;
   }
 
+  async getSellerDetails(sellerId: string): Promise<any> {
+    try {
+      // Fetch the Seller object and populate the 'userId' field to get the User document
+      const seller = await this.sellerModel.findById(sellerId).populate('userId').exec();
+  
+      if (!seller) {
+        throw new NotFoundException(`Seller with ID ${sellerId} not found`);
+      }
+  
+      // TypeScript type assertion to treat 'userId' as a populated User document
+      const user = seller.userId as any;
+  
+      // Now, 'user' has the properties of the User document
+      const userId = user._id;
+      const userName = user.userName;
+  
+      // Fetch the UserProfile object using userId from Seller object
+      const userProfile = await this.userProfileModel.findOne({ userId: seller.userId }).exec();
+  
+      if (!userProfile) {
+        throw new NotFoundException(`UserProfile for user ID ${user._id} not found`);
+      }
+  
+      // Extract the profile picture from the UserProfile
+      const profilePicture = userProfile.profilePicture;
+  
+      // return the user details of seller
+      return {
+        userId,
+        userName,
+        profilePicture
+      };
+    } catch (error) {
+      console.error(`Error fetching seller details for seller id: ${sellerId} ${error.message}`);
+      if (error.name === 'NotFoundException') {
+        throw error;
+      } else if (error.name === 'ValidationError') {
+        throw new BadRequestException('DB Validation failed when fetching seller location');
+      } else {
+        throw new InternalServerErrorException('An unexpected error occurred when fetching seller details');
+      }
+    }
+  }  
+  
   async findByUserId(userId: string): Promise<Seller> {
     let seller = await this.sellerModel.findOne({ userId });
       if (!seller) {

@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, Param, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, HttpCode, HttpStatus, Param, Post, UseGuards } from '@nestjs/common';
 import { ChatService } from './chat.service';
 import { CreateChatDTO } from './dtos/create-chat.dto';
 import { CreateMessageDTO } from './dtos/create-message.dto';
@@ -13,9 +13,19 @@ export class ChatController {
   @UseGuards(JwtAuthGuard)
   @Post()
   async createChat(@Body() createChatDTO: CreateChatDTO) {
-    return await this.chatService.createChat(createChatDTO);
+      return await this.chatService.createChat(createChatDTO);
   }
 
+  // To send create a message and send notification to buyer to rate the seller.
+  @UseGuards(JwtAuthGuard)
+  @Post('/create-system-chat')
+  @HttpCode(HttpStatus.OK)
+  async createSystemChat(@Body('buyerId') buyerId: string, @Body('listingId') listingId: string,) {
+    // Call the service method to create or find the system chat and add the system message
+    const chat = await this.chatService.createSystemChat(buyerId, listingId);
+    return chat;
+  }
+  
   @UseGuards(JwtAuthGuard)
   @Post(':chatId/message')
   async addMessageToChat(@Param('chatId') chatId: string, @Body() createMessageDTO: CreateMessageDTO) {
@@ -53,5 +63,11 @@ export class ChatController {
   async updateNotificationCount(@Param('userId') userId: string, @Body('count') count: number) {
     await this.chatService.updateNotificationCount(userId, count);
     return { message: 'Notification count updated successfully' };
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Get('/buyer-info/:listingId/:sellerId')
+  async getBuyerInfoByListingIdAndSellerId(@Param('listingId') listingId: string, @Param('sellerId') sellerId: string) {
+    return await this.chatService.getBuyersForListing(listingId, sellerId);
   }
 }

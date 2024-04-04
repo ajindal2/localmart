@@ -2,6 +2,7 @@ import * as mongoose from 'mongoose';
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { HydratedDocument, Types  } from 'mongoose';
 import { Message, MessageSchema } from './message.schema';
+import { User } from 'src/user/schemas/user.schema';
 
 export type ChatDocument = HydratedDocument<Chat>;
 
@@ -21,6 +22,9 @@ export class Chat {
 
   @Prop({ type: [MessageSchema], default: [] })
   messages: Message[]; // Array of messages
+
+  @Prop({ required: false })
+  isSystemMessage: boolean;
 }
 
 export const ChatSchema = SchemaFactory.createForClass(Chat);

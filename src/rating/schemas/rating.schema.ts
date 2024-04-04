@@ -6,7 +6,7 @@ export type RatingDocument = HydratedDocument<Rating>;
 
 @Schema()
 export class Rating {
-    // This is used to distinguis if a given rating is for a seller or a buyer.
+    // This is used to distinguish if a given rating is for a seller or a buyer.
     @Prop({ required: true, enum: ['seller', 'buyer'] })
     role: string;
 
@@ -27,6 +27,9 @@ export class Rating {
 
     @Prop({ default: Date.now })
     dateGiven: Date; // Date when the rating was given 
+
+    @Prop({ type: [String], default: [] })
+    tags: string[]; // Array of tags for the rating
 }
 
 export const RatingSchema = SchemaFactory.createForClass(Rating);

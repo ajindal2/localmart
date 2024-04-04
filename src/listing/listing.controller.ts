@@ -31,9 +31,7 @@ export class ListingController {
 
   @Get('/:id')
   async getListing(@Param('id') id: string) {
-    const listing = await this.listingService.getListing(id);
-    if (!listing) throw new NotFoundException('Product does not exist!');
-    return listing;
+    return await this.listingService.getListing(id);
   }
 
   @UseGuards(JwtAuthGuard)

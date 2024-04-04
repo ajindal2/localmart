@@ -21,7 +21,7 @@ export class SellerController {
   @Get('/:id')
   async getSeller(@Param('id') sellerId: string) {
     try {
-      const seller = await this.sellerService.findById(sellerId);
+      const seller = await this.sellerService.getSellerDetails(sellerId);
       return seller;
     } catch (error) {
       throw new HttpException(error.message, HttpStatus.NOT_FOUND);
