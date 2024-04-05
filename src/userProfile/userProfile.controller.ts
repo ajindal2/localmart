@@ -26,7 +26,7 @@ export class UserProfileController {
   }
 
   @Get('/:userId/location')
-  @UseGuards(JwtAuthGuard)
+  //@UseGuards(JwtAuthGuard)
   async getUserLocation(@Param('userId') userId: string) {
     return await this.userProfileService.getUserLocation(userId);
   }

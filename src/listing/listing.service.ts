@@ -28,7 +28,7 @@ export class ListingService {
         | { $geoNear: { near: GeoJSONPoint; distanceField: string; maxDistance?: number; spherical: true; } }
         | { $match: Record<string, any> };
   
-      let queryConditions = { status: { $ne: 'Sold' } }; // Exclude 'Sold' listings
+      let queryConditions = { state: { $ne: 'Sold' } }; // Exclude 'Sold' listings
   
       // Fuzzy text search for title
       if (title) {
@@ -100,10 +100,11 @@ export class ListingService {
       const skip = (page - 1) * limit;
     
       try {
-        const listings = await this.listingModel.find()
-          .skip(skip)
-          .limit(limit)
-          .exec();
+        // Add a condition to the find query to filter out 'sold' listings
+        const listings = await this.listingModel.find({ state: { $ne: 'Sold' } }) // $ne selects the documents where the value of the field is not equal to the specified value
+        .skip(skip)
+        .limit(limit)
+        .exec();          
     
         const totalItems = await this.listingModel.countDocuments();
         const totalPages = Math.ceil(totalItems / limit);

@@ -18,20 +18,26 @@ export class UserService {
   async createUser(createUserDTO: CreateUserDTO): Promise<User> {
     const { userName, displayName, emailAddress } = createUserDTO;
 
-    // Check for existing user by username
-    const existingUserByUsername = await this.userModel.findOne({ userName }).exec();
+    // Check for existing user by username with case-insensitive search
+    const existingUserByUsername = await this.userModel.findOne({ 
+      userName: { $regex: new RegExp('^' + userName + '$', 'i') }
+    }).exec();
     if (existingUserByUsername) {
       throw new ConflictException(`Username '${userName}' is already taken.`);
     }
 
-    // Check for existing user by email
-    const existingUserByEmail = await this.userModel.findOne({ emailAddress }).exec();
+    // Check for existing user by email with case-insensitive search
+    const existingUserByEmail = await this.userModel.findOne({
+      emailAddress: { $regex: new RegExp('^' + emailAddress + '$', 'i') }
+    }).exec();
     if (existingUserByEmail) {
       throw new ConflictException(`Email address '${emailAddress}' is already in use.`);
     }
 
-     // Check for existing user by displayName
-     const existingUserByDisplayName = await this.userModel.findOne({ displayName }).exec();
+     // Check for existing user by displayName with case-insensitive search
+     const existingUserByDisplayName = await this.userModel.findOne({  
+      displayName: { $regex: new RegExp('^' + displayName + '$', 'i') }
+    }).exec();
      if (existingUserByDisplayName) {
        throw new ConflictException(`Display Name '${displayName}' is already in use.`);
      }

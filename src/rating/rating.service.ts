@@ -133,11 +133,14 @@ export class RatingService {
         throw new NotFoundException('SellerId not found: ', sellerId);
       }
 
-      // Step 1: Retrieve ratings and populate 'ratedBy' field
-      const ratings = await this.ratingModel.find({ ratedUser: seller.userId })
-                                            .populate('ratedBy', 'displayName')
-                                            .populate('ratedUser', 'displayName')
-                                            .exec();
+      // Step 1: Retrieve 'Seller' ratings and populate 'ratedBy' field
+      const ratings = await this.ratingModel.find({ 
+        ratedUser: seller.userId,
+        role: 'seller' // Only fetch ratings where the user is rated as a seller
+      })
+      .populate('ratedBy', 'displayName')
+      .populate('ratedUser', 'displayName')
+      .exec();
     
       // Step 2: Fetch the UserProfile of the seller
       const sellerProfile = await this.userProfileModel.findOne({ userId: seller.userId })
