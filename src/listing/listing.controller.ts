@@ -17,7 +17,7 @@ export class ListingController {
   async getListings(
     @Query() queryListingDTO: QueryListingDTO,
     @Query('page', ParseIntPipe) page: number = 1,  // Default to page 1 if not specified or if parsing fails
-    @Query('limit', ParseIntPipe) limit: number = 50  // Default to 10 items per page if not specified or if parsing fails
+    @Query('limit', ParseIntPipe) limit: number = 50  // Default to 50 items per page if not specified or if parsing fails
   ): Promise<PaginatedListingsResult> {
     const paginationOptions = { page, limit };
     if (Object.keys(queryListingDTO).length) {
@@ -90,9 +90,7 @@ export class ListingController {
     @Param('id') id: string,
     @UploadedFiles() files: Express.Multer.File[],
     @Req() req: Request,
-    @Body() updateListingDto: UpdateListingDTO
-  ) {
-      // TODO check userId exists when token gets refreshed.
+    @Body() updateListingDto: UpdateListingDTO) {
       if (!req.user) {
         throw new UnauthorizedException('No user object found in request');
       }
@@ -103,24 +101,24 @@ export class ListingController {
         throw new UnauthorizedException('User ID not found in request');
       }
 
-    // Check if images are uploaded
-    if (!files || files.length === 0) {
-      throw new BadRequestException('No images provided');
+      // Check if images are uploaded
+      if (!files || files.length === 0) {
+        throw new BadRequestException('No images provided');
+      }
+
+      const protocol = req.headers['x-forwarded-proto'] || req.protocol || 'http'; 
+      const host = req.headers['host'] || req.get('host') || 'localhost:3000';
+
+      // Process the files, store them, and get their URLs
+      const imageUrls = files.map(file => {
+        const fileUrl = `${protocol}://${host}/uploads/${file.filename}`;
+        return fileUrl;
+      });
+
+      // Add the image URLs to the DTO
+      updateListingDto.imageUrls = imageUrls;
+      return await this.listingService.updateListing(id, updateListingDto);
     }
-
-    const protocol = req.headers['x-forwarded-proto'] || req.protocol || 'http'; 
-    const host = req.headers['host'] || req.get('host') || 'localhost:3000';
-
-    // Process the files, store them, and get their URLs
-    const imageUrls = files.map(file => {
-      const fileUrl = `${protocol}://${host}/uploads/${file.filename}`;
-      return fileUrl;
-    });
-
-    // Add the image URLs to the DTO
-    updateListingDto.imageUrls = imageUrls;
-    return await this.listingService.updateListing(id, updateListingDto);
-  }
 
   // Get listings for a specific user
   @UseGuards(JwtAuthGuard)

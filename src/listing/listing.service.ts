@@ -28,8 +28,11 @@ export class ListingService {
         | { $geoNear: { near: GeoJSONPoint; distanceField: string; maxDistance?: number; spherical: true; } }
         | { $match: Record<string, any> };
   
-      let queryConditions = { state: { $ne: 'Sold' } }; // Exclude 'Sold' listings
-  
+      let queryConditions = {
+        // Use regex for case-insensitive match and exclude 'sold' listings
+        state: { $not: { $regex: '^sold$', $options: 'i' } }
+      };
+
       // Fuzzy text search for title
       if (title) {
         queryConditions['title'] = { $regex: title, $options: 'i' }; // Case-insensitive search
@@ -101,7 +104,7 @@ export class ListingService {
     
       try {
         // Add a condition to the find query to filter out 'sold' listings
-        const listings = await this.listingModel.find({ state: { $ne: 'Sold' } }) // $ne selects the documents where the value of the field is not equal to the specified value
+        const listings = await this.listingModel.find({ state: { $not: { $regex: '^sold$', $options: 'i' } } }) 
         .skip(skip)
         .limit(limit)
         .exec();          
@@ -179,6 +182,7 @@ export class ListingService {
   }
 
   async updateListing(listingId: string, updateListingDto: UpdateListingDTO): Promise<Listing> {
+
     try {
       // Find the listing by ID
       const listing = await this.listingModel.findById(listingId);
@@ -215,7 +219,8 @@ export class ListingService {
       listing.imageUrls = updateListingDto.imageUrls; // Assuming new images are provided
       listing.location = convertedLocation; // Or handle location update logic
 
-      if (locationData && locationData.postalCode && !locationData.coordinates) {
+      //Commenting since this should never get executed. We are always setting the locationData on clinet by calling location controller when only zipcode is enetred by user.
+      /*if (locationData && locationData.postalCode && !locationData.coordinates) {
         // Only ZIP code provided, fetch coordinates and city from Google API
         const isValidZipcode = await this.isZipcodeValid(locationData.postalCode);
         if (!isValidZipcode) {
@@ -226,7 +231,7 @@ export class ListingService {
         // Fetch full location details based on the ZIP code
         const fullLocationData = await this.fetchLocationFromZipcode(locationData.postalCode);
         listing.location = fullLocationData;
-      }
+      }*/
     
       // Save the updated listing
       return await listing.save();
@@ -283,55 +288,6 @@ export class ListingService {
     }
   }
 
-/*async createListing(userId: string, createListingDto: CreateListingDTO): Promise<Listing> {
-  console.log('Inside service method of createListing. Logging passed-in userId: ', userId);
-
-  // Find the seller or create a new one if it doesn't exist
-  // The findOneAndUpdate method with the upsert option is used to either find the existing seller or create a new one. 
-  const seller = await this.sellerModel.findOneAndUpdate(
-    { user: userId },
-    { $setOnInsert: { user: userId } },
-    { new: true, upsert: true }
-  );
-
-  console.log('Logging sellerId: ', seller._id);
-
-  // Convert DTO to Mongoose schema format if necessary
-  // Update the selelr schema with the location if seller has added a new one
-  // TODO add a check if location is empty
-  const location = this.convertLocationDtoToSchema(createListingDto.location);
-  if (JSON.stringify(seller.location) !== JSON.stringify(location)) {
-    seller.location = location;
-    await seller.save();
-  }
-
-  // Create a new listing
-  const newListing = new this.listingModel({
-    ...createListingDto,
-    seller: seller._id,
-    state: 'active',
-  });
-
-  // Handle location update
-  if(createListingDto.location) {
-    if(createListingDto.location.postalCode && !createListingDto.location.coordinates) {
-      // Only ZIP code provided, fetch coordinates and city from Google API
-      const isValidZipcode = await this.isZipcodeValid(createListingDto.location.postalCode);
-      if (!isValidZipcode) {
-        throw new Error('Invalid ZIP code');
-      }
-      const locationData = await this.fetchLocationFromZipcode(createListingDto.location.postalCode);
-      newListing.location = locationData;
-    } else {
-      // Directly use provided location data (coordinates and city)
-      const locationData = this.convertLocationDtoToSchema(createListingDto.location);
-      newListing.location = locationData;
-    }
-  }
-
-  return await newListing.save();
-}*/
-
 async createListing(userId: string, createListingDto: CreateListingDTO): Promise<Listing> {
   try {
     let seller = await this.sellerModel.findOne({ userId: userId });
@@ -368,6 +324,11 @@ async createListing(userId: string, createListingDto: CreateListingDTO): Promise
       location: convertedLocation
     });
 
+    seller.location = convertedLocation;
+    await seller.save();
+
+    //Commenting since this should never get executed. We are always setting the locationData on clinet by calling location controller when only zipcode is enetred by user.
+    /*
     // Additional logic for handling ZIP code only location
     if (locationData && locationData.postalCode && !locationData.coordinates) {
       // Only ZIP code provided, fetch coordinates and city from Google API
@@ -383,6 +344,8 @@ async createListing(userId: string, createListingDto: CreateListingDTO): Promise
       seller.location = fullLocationData;
       await seller.save();
     }
+    */
+
     return await newListing.save();
   } catch (error) {
     console.error(`Error creating listing`, error);
@@ -391,56 +354,6 @@ async createListing(userId: string, createListingDto: CreateListingDTO): Promise
       } else {
         throw new InternalServerErrorException('An unexpected error occurred');
       }
-  }
-}
-
-private async fetchLocationFromZipcode(zipcode: string): Promise<any> {
-  // Google Geocoding API URL
-  const url = `https://maps.googleapis.com/maps/api/geocode/json?address=${zipcode}&key=AIzaSyCjS6WbSux7d1QQcjENuojKTvAzAtH9xn8`;
-
-  try {
-    const response = await axios.get(url);
-    const location = response.data.results[0].geometry.location;
-    const city = response.data.results[0].address_components.find(component => component.types.includes('locality')).long_name;
-
-    return {
-      coordinates: {
-        type: 'Point',
-        coordinates: [location.lng, location.lat]
-      },
-      city: city,
-      postalCode: zipcode
-    };
-  } catch (error) {
-    // Handle error (e.g., log it, return null, or throw an exception)
-    console.error(error);
-    return null;
-  }
-}
-
-async isZipcodeValid(zipcode: string): Promise<boolean> {
-  const url = `https://maps.googleapis.com/maps/api/geocode/json?address=${zipcode}&key=AIzaSyCjS6WbSux7d1QQcjENuojKTvAzAtH9xn8`;
-
-  try {
-    const response = await axios.get(url);
-    const results = response.data.results;
-
-    if (results.length === 0) {
-      // No results found for the ZIP code
-      return false;
-    }
-
-    // Check if the response contains a postal_code type in address components
-    const isValid = results.some(result => 
-      result.address_components.some(component => 
-        component.types.includes('postal_code')
-      )
-    );
-
-    return isValid;
-  } catch (error) {
-    console.error('Error validating ZIP code:', error);
-    throw new Error('Error validating ZIP code');
   }
 }
 

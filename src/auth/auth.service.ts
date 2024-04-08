@@ -34,7 +34,7 @@ export class AuthService {
     }
 
   async login(user: any) {
-    const payload = { username: user.userName, sub: user._id };
+    const payload = { username: user.userName, userId: user._id };
     const refreshToken = await this.createRefreshToken(user);
 
     return {
@@ -110,7 +110,7 @@ export class AuthService {
   }
 
   async createAccessToken(user: any): Promise<string> {
-    return this.jwtService.sign({ userId: user.id, username: user.username });
+    return this.jwtService.sign({ userId: user._id, username: user.userName });
   }
 
   private async createRefreshToken(user: any): Promise<string> {
