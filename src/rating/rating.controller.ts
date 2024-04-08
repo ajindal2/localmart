@@ -56,6 +56,7 @@ export class RatingController {
   @Get('user/:userId')
   @UseGuards(JwtAuthGuard)
   async getRatingsByUser(@Param('userId') userId: string) {
+    // Right now this is used to vew My ratings from Account screen. In future it can be expanded to view ratings for nay user. Hence, do use Request object to for auth.
     const result = await this.ratingService.getRatingsByUser(userId);
     return result;
   }

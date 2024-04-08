@@ -1,9 +1,11 @@
-import { Body, Controller, Get, NotFoundException, Param, Put, Post, Delete, UseGuards, UsePipes, ValidationPipe, Res, HttpStatus, BadRequestException } from '@nestjs/common';
+import { Body, Controller, Get, NotFoundException, Param, Put, Post, Req, UseGuards, UsePipes, ValidationPipe, Res, HttpStatus, BadRequestException, UnauthorizedException } from '@nestjs/common';
 import { UserService } from './user.service';
 import { UpdateUserDTO } from './dtos/update-user.dto';
 import { CreateUserDTO } from './dtos/create-user.dto';
 import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
 import { UpdatePasswordDTO } from './dtos/update-password.dto';
+import { Request } from 'express';
+
 
 @Controller('users')
 export class UserController {
@@ -16,7 +18,22 @@ export class UserController {
   
   @Get('/:userId')
   @UseGuards(JwtAuthGuard)
-  async getUser(@Param('userId') userId: string) {
+  async getUser(@Param('userId') userId: string, @Req() req: Request) {
+    if (!req.user) {
+      throw new UnauthorizedException('No user object found in request');
+    }
+
+    // Extract userId and check if it exists
+    const userIdFromReq = req.user['userId']; 
+    if (!userIdFromReq) {
+      throw new UnauthorizedException('User ID not found in request');
+    }
+
+    // Extra layer of validation to ensure the userId from the params matches the one from the token
+    if (userIdFromReq !== userId) {
+      throw new UnauthorizedException('User is not authorized');
+    }
+
     const user = await this.userService.findByUserId(userId);
     if (!user) throw new NotFoundException('User does not exist!');
     return user;
@@ -25,7 +42,22 @@ export class UserController {
   @UseGuards(JwtAuthGuard)
   @Put('/:id')
   @UsePipes(new ValidationPipe({ transform: true }))
-  async update(@Param('id') id: string, @Body() updateUserDto: UpdateUserDTO) {
+  async update(@Param('id') id: string, @Body() updateUserDto: UpdateUserDTO, @Req() req: Request) {
+    if (!req.user) {
+      throw new UnauthorizedException('No user object found in request');
+    }
+
+    // Extract userId and check if it exists
+    const userIdFromReq = req.user['userId']; 
+    if (!userIdFromReq) {
+      throw new UnauthorizedException('User ID not found in request');
+    }
+
+    // Extra layer of validation to ensure the userId from the params matches the one from the token
+    if (userIdFromReq !== id) {
+      throw new UnauthorizedException('User is not authorized');
+    }
+
     return await this.userService.updateById(id, updateUserDto);
   }
 
@@ -56,7 +88,23 @@ export class UserController {
       throw new BadRequestException({ errors: formattedErrors });
     }
   }))
-  async updatePassword(@Param('id') userId: string, @Body() updatePasswordDto: UpdatePasswordDTO) {
+  async updatePassword(@Param('id') userId: string, @Body() updatePasswordDto: UpdatePasswordDTO, @Req() req: Request) {
+
+    if (!req.user) {
+      throw new UnauthorizedException('No user object found in request');
+    }
+
+    // Extract userId and check if it exists
+    const userIdFromReq = req.user['userId']; 
+    if (!userIdFromReq) {
+      throw new UnauthorizedException('User ID not found in request');
+    }
+
+    // Extra layer of validation to ensure the userId from the params matches the one from the token
+    if (userIdFromReq !== userId) {
+      throw new UnauthorizedException('User is not authorized');
+    }
+
     return await this.userService.updatePassword(userId, updatePasswordDto);
   }
 }

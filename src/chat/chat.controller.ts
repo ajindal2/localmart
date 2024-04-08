@@ -1,10 +1,12 @@
-import { Body, Controller, Delete, Get, HttpCode, HttpStatus, Param, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, HttpCode, HttpStatus, Param, Post, Req, UnauthorizedException, UseGuards } from '@nestjs/common';
 import { ChatService } from './chat.service';
 import { CreateChatDTO } from './dtos/create-chat.dto';
 import { CreateMessageDTO } from './dtos/create-message.dto';
 import { Types } from 'mongoose';
 import { MarkAsReadDto } from './dtos/mark-as-read.dto';
 import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
+import { Request } from 'express';
+
 
 @Controller('chat')
 export class ChatController {
@@ -42,7 +44,22 @@ export class ChatController {
 
   @UseGuards(JwtAuthGuard)
   @Get('/:userId')
-  async getChats(@Param('userId') userId: string) {
+  async getChats(@Param('userId') userId: string, @Req() req: Request) {
+    if (!req.user) {
+      throw new UnauthorizedException('No user object found in request');
+    }
+
+    // Extract userId and check if it exists
+    const userIdFromReq = req.user['userId']; 
+    if (!userIdFromReq) {
+      throw new UnauthorizedException('User ID not found in request');
+    }
+
+    // Extra layer of validation to ensure the userId from the params matches the one from the token
+    if (userIdFromReq !== userId) {
+      throw new UnauthorizedException('User is not authorized to view chats');
+    }
+
     return await this.chatService.getChats(userId);
   }
 
@@ -54,13 +71,43 @@ export class ChatController {
 
   @UseGuards(JwtAuthGuard)
   @Get('/:userId/notificationCount')
-  async getNotificationCount(@Param('userId') userId: string) {
+  async getNotificationCount(@Param('userId') userId: string, @Req() req: Request) {
+    if (!req.user) {
+      throw new UnauthorizedException('No user object found in request');
+    }
+
+    // Extract userId and check if it exists
+    const userIdFromReq = req.user['userId']; 
+    if (!userIdFromReq) {
+      throw new UnauthorizedException('User ID not found in request');
+    }
+
+    // Extra layer of validation to ensure the userId from the params matches the one from the token
+    if (userIdFromReq !== userId) {
+      throw new UnauthorizedException('User is not authorized');
+    }
+
     return await this.chatService.getNotificationCount(userId);
   }
 
   @UseGuards(JwtAuthGuard)
   @Post('/:userId/updateNotificationCount')
-  async updateNotificationCount(@Param('userId') userId: string, @Body('count') count: number) {
+  async updateNotificationCount(@Param('userId') userId: string, @Body('count') count: number, @Req() req: Request) {
+    if (!req.user) {
+      throw new UnauthorizedException('No user object found in request');
+    }
+
+    // Extract userId and check if it exists
+    const userIdFromReq = req.user['userId']; 
+    if (!userIdFromReq) {
+      throw new UnauthorizedException('User ID not found in request');
+    }
+
+    // Extra layer of validation to ensure the userId from the params matches the one from the token
+    if (userIdFromReq !== userId) {
+      throw new UnauthorizedException('User is not authorized');
+    }
+
     await this.chatService.updateNotificationCount(userId, count);
     return { message: 'Notification count updated successfully' };
   }

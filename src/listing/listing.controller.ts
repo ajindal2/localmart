@@ -1,4 +1,4 @@
-import { Controller, Post, Get, Put, Delete, Body, Param, Query, NotFoundException, UseInterceptors, UploadedFiles, Req, BadRequestException, UseGuards, UnauthorizedException, Patch, ParseIntPipe } from '@nestjs/common';
+import { Controller, Post, Get, Put, Delete, Body, Param, Query, UseInterceptors, UploadedFiles, Req, BadRequestException, UseGuards, UnauthorizedException, Patch, ParseIntPipe } from '@nestjs/common';
 import { ListingService } from './listing.service';
 import { QueryListingDTO } from './dtos/query-listing.dto';
 import { CreateListingDTO } from './dtos/create-listing.dto';
@@ -50,8 +50,19 @@ export class ListingController {
     @UploadedFiles() files: Express.Multer.File[], @Req() req: Request, @Param('userId') userId: string, 
     @Body() createListingDto: CreateListingDTO) {
 
-      if (!userId) {
+      if (!req.user) {
+        throw new UnauthorizedException('No user object found in request');
+      }
+  
+      // Extract userId and check if it exists
+      const userIdFromReq = req.user['userId']; 
+      if (!userIdFromReq) {
         throw new UnauthorizedException('User ID not found in request');
+      }
+
+      // Extra layer of validation to ensure the userId from the params matches the one from the token
+      if (userIdFromReq !== userId) {
+        throw new UnauthorizedException('User is not authorized to create new listing');
       }
   
       // Check if images are uploaded
@@ -91,34 +102,34 @@ export class ListingController {
     @UploadedFiles() files: Express.Multer.File[],
     @Req() req: Request,
     @Body() updateListingDto: UpdateListingDTO) {
-      if (!req.user) {
-        throw new UnauthorizedException('No user object found in request');
-      }
-
-      // Extract userId and check if it exists
-      const userId = req.user['userId']; // Adjust the path according to how your user object is structured
-      if (!userId) {
-        throw new UnauthorizedException('User ID not found in request');
-      }
-
-      // Check if images are uploaded
-      if (!files || files.length === 0) {
-        throw new BadRequestException('No images provided');
-      }
-
-      const protocol = req.headers['x-forwarded-proto'] || req.protocol || 'http'; 
-      const host = req.headers['host'] || req.get('host') || 'localhost:3000';
-
-      // Process the files, store them, and get their URLs
-      const imageUrls = files.map(file => {
-        const fileUrl = `${protocol}://${host}/uploads/${file.filename}`;
-        return fileUrl;
-      });
-
-      // Add the image URLs to the DTO
-      updateListingDto.imageUrls = imageUrls;
-      return await this.listingService.updateListing(id, updateListingDto);
+    if (!req.user) {
+      throw new UnauthorizedException('No user object found in request');
     }
+
+    // Extract userId and check if it exists
+    const userId = req.user['userId']; 
+    if (!userId) {
+      throw new UnauthorizedException('User ID not found in request');
+    }
+
+    // Check if images are uploaded
+    if (!files || files.length === 0) {
+      throw new BadRequestException('No images provided');
+    }
+
+    const protocol = req.headers['x-forwarded-proto'] || req.protocol || 'http'; 
+    const host = req.headers['host'] || req.get('host') || 'localhost:3000';
+
+    // Process the files, store them, and get their URLs
+    const imageUrls = files.map(file => {
+      const fileUrl = `${protocol}://${host}/uploads/${file.filename}`;
+      return fileUrl;
+    });
+
+    // Add the image URLs to the DTO
+    updateListingDto.imageUrls = imageUrls;
+    return await this.listingService.updateListing(id, updateListingDto);
+  }
 
   // Get listings for a specific user
   @UseGuards(JwtAuthGuard)

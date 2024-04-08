@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Param, Put, Delete, UsePipes, ValidationPipe, UseGuards, UseInterceptors, UploadedFile, Req, BadRequestException } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, Put, Delete, UsePipes, ValidationPipe, UseGuards, UseInterceptors, UploadedFile, Req, BadRequestException, UnauthorizedException } from '@nestjs/common';
 import { UserProfileService } from './userProfile.service';
 import { CreateUserProfileDTO } from './dtos/create-userProfile.dto';
 import { UpdateUserProfileDTO } from './dtos/update-userProfile.dto';
@@ -19,15 +19,47 @@ export class UserProfileController {
     return await this.userProfileService.createUserProfile(createUserProfileDto);
   }
 
-  //@UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard)
   @Get('/:userId')
-  async getUserProfile(@Param('userId') userId: string) {    
+  async getUserProfile(@Param('userId') userId: string, @Req() req: Request) {   
+
+    if (!req.user) {
+      throw new UnauthorizedException('No user object found in request');
+    }
+
+    // Extract userId and check if it exists
+    const userIdFromReq = req.user['userId']; 
+    if (!userIdFromReq) {
+      throw new UnauthorizedException('User ID not found in request');
+    }
+
+    // Extra layer of validation to ensure the userId from the params matches the one from the token
+    if (userIdFromReq !== userId) {
+      throw new UnauthorizedException('User is not authorized');
+    }
+     
     return await this.userProfileService.getUserProfile(userId);
   }
 
   @Get('/:userId/location')
-  //@UseGuards(JwtAuthGuard)
-  async getUserLocation(@Param('userId') userId: string) {
+  @UseGuards(JwtAuthGuard)
+  async getUserLocation(@Param('userId') userId: string, @Req() req: Request) {
+
+    if (!req.user) {
+      throw new UnauthorizedException('No user object found in request');
+    }
+
+    // Extract userId and check if it exists
+    const userIdFromReq = req.user['userId']; 
+    if (!userIdFromReq) {
+      throw new UnauthorizedException('User ID not found in request');
+    }
+
+    // Extra layer of validation to ensure the userId from the params matches the one from the token
+    if (userIdFromReq !== userId) {
+      throw new UnauthorizedException('User is not authorized');
+    }
+
     return await this.userProfileService.getUserLocation(userId);
   }
 
@@ -35,7 +67,23 @@ export class UserProfileController {
   @UseGuards(JwtAuthGuard)
   @Put('/:userId')
   @UsePipes(new ValidationPipe({ transform: true }))
-  async updateUserProfile(@Param('userId') userId: string, @Body() updateUserProfileDto: UpdateUserProfileDTO) {
+  async updateUserProfile(@Param('userId') userId: string, @Body() updateUserProfileDto: UpdateUserProfileDTO, @Req() req: Request) {
+
+    if (!req.user) {
+      throw new UnauthorizedException('No user object found in request');
+    }
+
+    // Extract userId and check if it exists
+    const userIdFromReq = req.user['userId']; 
+    if (!userIdFromReq) {
+      throw new UnauthorizedException('User ID not found in request');
+    }
+
+    // Extra layer of validation to ensure the userId from the params matches the one from the token
+    if (userIdFromReq !== userId) {
+      throw new UnauthorizedException('User is not authorized');
+    }
+
     return await this.userProfileService.createOrUpdateProfile(userId, updateUserProfileDto);
   }
 
@@ -45,7 +93,7 @@ export class UserProfileController {
     await this.userProfileService.deleteUserProfile(userId);
   }
 
-@Put('/:userId/image')
+  @Put('/:userId/image')
   @UseGuards(JwtAuthGuard)
   @UseInterceptors(FileInterceptor('file', {
     storage: diskStorage({
@@ -60,16 +108,30 @@ export class UserProfileController {
   async updateProfileImage(
     @UploadedFile() file: Express.Multer.File, @Req() req: Request,
     @Param('userId') userId: string) {
+      if (!req.user) {
+        throw new UnauthorizedException('No user object found in request');
+      }
+  
+      // Extract userId and check if it exists
+      const userIdFromReq = req.user['userId']; 
+      if (!userIdFromReq) {
+        throw new UnauthorizedException('User ID not found in request');
+      }
+  
+      // Extra layer of validation to ensure the userId from the params matches the one from the token
+      if (userIdFromReq !== userId) {
+        throw new UnauthorizedException('User is not authorized');
+      }
 
-    if (!file) throw new BadRequestException('Invalid file upload.');
+      if (!file) throw new BadRequestException('Invalid file upload.');
 
-    const protocol = req.headers['x-forwarded-proto'] || req.protocol || 'http'; 
-    const host = req.headers['host'] || req.get('host') || 'localhost:3000';
+      const protocol = req.headers['x-forwarded-proto'] || req.protocol || 'http'; 
+      const host = req.headers['host'] || req.get('host') || 'localhost:3000';
 
-    // Process the files, store them, and get their URLs
-    const imageUrl =  `${protocol}://${host}/uploads/${file.filename}`;
+      // Process the files, store them, and get their URLs
+      const imageUrl =  `${protocol}://${host}/uploads/${file.filename}`;
 
-    const updatedProfile = await this.userProfileService.createOrUpdateProfileWithImage(userId, imageUrl);
-    return { profile: updatedProfile };
-  }
+      const updatedProfile = await this.userProfileService.createOrUpdateProfileWithImage(userId, imageUrl);
+      return { profile: updatedProfile };
+    }
 }
