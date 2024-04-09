@@ -44,22 +44,8 @@ export class SavedListingController {
   }
 
   @Get('check-status/:userId/:listingId')
-  async checkSavedStatus(@Param('userId') userId: string, @Param('listingId') listingId: string, @Req() req: Request) {
-    if (!req.user) {
-      throw new UnauthorizedException('No user object found in request');
-    }
-
-    // Extract userId and check if it exists
-    const userIdFromReq = req.user['userId']; 
-    if (!userIdFromReq) {
-      throw new UnauthorizedException('User ID not found in request');
-    }
-
-    // Extra layer of validation to ensure the userId from the params matches the one from the token
-    if (userIdFromReq !== userId) {
-      throw new UnauthorizedException('User is not authorized');
-    }
-
+  async checkSavedStatus(@Param('userId') userId: string, @Param('listingId') listingId: string) {
+    // This is not authorized route. So not using userId from req.
     return await this.savedListingService.checkSavedStatus(userId, listingId);
   }
 }

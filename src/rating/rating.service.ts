@@ -157,17 +157,30 @@ export class RatingService {
 
       if (!ratings || ratings.length === 0) {
         // Handle the case where no ratings are found
-        return { averageRating: 0, ratingsWithProfile: [], sellerProfile };
+        return { averageRating: 0, ratingsWithProfile: [], sellerProfile, tagsSummary: {} };
       }
     
       // Step 3: Compute Average Rating
       const sum = ratings.reduce((acc, rating) => acc + rating.stars, 0);
       const averageRating = sum / ratings.length;
     
+      // Step 4: Aggregate tags from all ratings
+      // Now `tagsSummary` is an object where each key is a tag and its value is the count of that tag.
+      const tagsSummary = ratings.reduce((acc, rating) => {
+        rating.tags.forEach(tag => {
+          if (acc[tag]) {
+            acc[tag] += 1; // Increment count if tag already exists
+          } else {
+            acc[tag] = 1; // Initialize count if tag is new
+          }
+        });
+        return acc;
+      }, {});
+
       // Extract user IDs for profile lookup
       const userIds = ratings.map(rating => rating.ratedBy._id);
     
-      // Step 4: Fetch UserProfiles based on userIds and map ratings
+      // Step 5: Fetch UserProfiles based on userIds and map ratings
       const userProfiles = await this.userProfileModel.find({ userId: { $in: userIds } });
     
       const ratingsWithProfile = ratings.map(rating => {
@@ -178,7 +191,7 @@ export class RatingService {
         };
       });
 
-      return { averageRating, ratingsWithProfile, sellerProfile };
+      return { averageRating, ratingsWithProfile, sellerProfile, tagsSummary };
     } catch (error) {
       console.error('Error fetching ratings with profiles:', error);
       if (error.name === 'NotFoundException') {
