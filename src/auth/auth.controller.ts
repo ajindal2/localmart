@@ -33,7 +33,12 @@ export class AuthController {
       const user = await this.userService.createUser(createUserDTO);
       return user;
     } catch (error) {
-      throw new BadRequestException('Error processing your request');
+      console.error('Error during registration', error);
+      if (error.name === 'ConflictException') {
+        throw error;
+      } else {
+        throw new BadRequestException('Error processing your request');
+      }
     }
   }
 

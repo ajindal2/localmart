@@ -72,7 +72,6 @@ export class UserService {
 
       const passwordsMatch = await bcrypt.compare(currentPassword, user.password);
       if (!passwordsMatch) {
-        console.log('Current password is incorrect: ' );
         throw new BadRequestException('Current password is incorrect');
       }
 
@@ -81,7 +80,7 @@ export class UserService {
       await user.save();
     } catch (error) {
       console.error(`Error updating password for userId ${userId}`, error);
-      if (error.name === 'NotFoundException') {
+      if (error.name === 'NotFoundException' || error.name === 'BadRequestException') {
         throw error;
       } else if (error.name === 'ValidationError') {
         throw new BadRequestException('DB Validation failed');

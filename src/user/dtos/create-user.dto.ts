@@ -9,8 +9,8 @@ export class CreateUserDTO {
 
   @IsString({ message: 'Display name must be a string' })
   @Length(2, 30, { message: 'Display name must be between 2 and 30 characters' })
-  @Matches(/^[A-Za-z\s]+$/, {
-    message: 'Display name can only contain letters and spaces',
+  @Matches(/^[A-Za-z]+$/, {
+    message: 'Display name can only contain letters',
   })
   displayName: string;
   
