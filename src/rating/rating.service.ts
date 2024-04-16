@@ -82,7 +82,10 @@ export class RatingService {
   async getRatingsByUser(userId: string) {
     try {
       // Step 1: Retrieve ratings and populate 'ratedBy' field
-      const ratings = await this.ratingModel.find({ ratedUser: userId })
+      const ratings = await this.ratingModel.find({ 
+        ratedUser: userId,
+        role: 'seller' // Only fetch ratings where the user is rated as a seller
+      })
       .populate('ratedBy', 'displayName')
       .populate('ratedUser', 'displayName')
       .exec();

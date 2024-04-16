@@ -186,14 +186,6 @@ export class ChatService {
           arrayFilters: [{ "elem.senderId": { $ne: userId }, "elem.read": false }] // Exclude messages sent by the current user. when a user opens a chat, only the messages sent to them (and not by them) are marked as read
         }
       );
-
-      //console.log('Unread messages in chat', chatId, 'marked as read for user', userId);
-  
-      if (result.modifiedCount === 0) {
-        console.log('No unread messages to update or chat not found');
-      } else {
-        console.log(`${result.modifiedCount} messages marked as read in chat ${chatId}`);
-      }
     } catch (error) {
       console.error('Error marking messages as read:', error);
       throw new HttpException('Error marking messages as read', HttpStatus.INTERNAL_SERVER_ERROR);
@@ -214,14 +206,16 @@ export class ChatService {
       if (!chats || chats.length === 0) {
         throw new NotFoundException(`No chats found for user with id ${userId}`);
       }
-  
-      // Calculate unread messages for each chat
+
       const chatsWithUnread = chats.map(chat => {
-        const unreadMessages = chat.messages.filter(message => !message.read);
+        // Filter out messages that were sent by the userId and are unread
+        const unreadMessages = chat.messages.filter(message => 
+          !message.read && !message.senderId.equals(userId) // Assuming senderId is stored as ObjectId and populated
+        );
         return {
           ...chat.toObject(),
           unreadCount: unreadMessages.length,
-          lastMessageRead: unreadMessages.length === 0, //|| unreadMessages[0]._id.toString() !== chat.messages[chat.messages.length - 1]._id.toString(),
+          lastMessageRead: unreadMessages.length === 0,
         };
       });
   
@@ -230,12 +224,15 @@ export class ChatService {
       console.error(`Error getting chats for user ${userId}`, error);
       if (error.name === 'NotFoundException') {
         throw error;
+      } else if (error.name === 'ValidationError') {
+        throw new BadRequestException('DB validation failed');
       } else {
-        throw new HttpException('Error getting chats', HttpStatus.INTERNAL_SERVER_ERROR);
+        throw new InternalServerErrorException('An unexpected error occurred when getting chats');
       }
     }
   }
 
+  // Not in use
   async getChat(chatId: string): Promise<Chat> {
     try {
       // Fetch chat by chatId

@@ -115,7 +115,8 @@ export class AuthService {
 
   private async createRefreshToken(user: any): Promise<string> {
     try {
-      const refreshToken = this.jwtService.sign({ userId: user._id }, { expiresIn: '7d' });
+      // Set the expiry to 6 months.
+      const refreshToken = this.jwtService.sign({ userId: user._id }, { expiresIn: '180d' });
       const expiryDate = new Date();
       expiryDate.setDate(expiryDate.getDate() + 7); // Set expiry date 7 days from now
 
