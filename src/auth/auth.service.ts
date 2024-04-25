@@ -1,4 +1,4 @@
-import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { BadRequestException, Injectable, InternalServerErrorException, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import { RefreshToken } from './schemas/refresh-token.schema';
@@ -6,7 +6,8 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { UserService } from 'src/user/user.service';
 import { randomBytes } from 'crypto';
-import { MailerService } from '@nestjs-modules/mailer'; // Assuming you're using @nestjs-modules/mailer for sending emails
+import { MailerService } from '@nestjs-modules/mailer'; 
+import { ContactUsDTO } from './dtos/contact-us.dto';
 
 
 @Injectable()
@@ -102,6 +103,58 @@ export class AuthService {
       });
     } catch (error) {
       console.log("Error in Mail service: ", error);
+    }
+  }
+
+  /*async sendContactEmail(contactData: ContactUsDTO): Promise<void> {
+    try {
+      await this.mailerService.sendMail({
+        to: 'support@yourcompany.com', // Your support email address
+        from: contactData.email, // User's email address
+        subject: `Contact Us - ${contactData.subject}`,
+        html: `Message from ${contactData.displayName}: <br><br> ${contactData.message}`,
+        attachments: [
+          {
+            filename: contactData.attachment?.originalname,
+            path: contactData.attachment?.path
+          }
+        ].filter(attachment => !!attachment.path) // Ensure there is a file to attach
+      });
+    } catch (error) {
+      console.error('Failed to send contact email', error);
+      throw new Error('Failed to send your message, please try again later.');
+    }
+  }*/
+  
+  async sendContactUsMail(email: string, subject: string, message: string, attachment?: Express.Multer.File): Promise<void> {
+    try {
+      const mailOptions = {
+        //from: email,
+        //to: 'support@farmvox.com', 
+        to: 'aanchaljindal@gmail.com',
+        from: 'rahulgarg123@yahoo.com',
+        subject: subject,
+        template: 'contact-us',
+        context: {
+            subject: subject,
+            message: message,
+            email: email
+        },
+        //text: message,
+        attachments: attachment ? [{
+          filename: attachment.originalname,
+          content: attachment.buffer,
+        }] : [],
+      };
+
+      await this.mailerService.sendMail(mailOptions);
+    } catch (error) {
+      console.log(`Error in Mail service for email ${email}: `, error);
+      if (error.name === 'ValidationError') {
+        throw new BadRequestException('DB Validation failed');
+      } else {
+        throw new InternalServerErrorException('An unexpected error occurred');
+      }
     }
   }
 

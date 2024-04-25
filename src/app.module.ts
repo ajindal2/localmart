@@ -15,10 +15,18 @@ import { CacheModule } from './cache/cache.module';
 import { ChatModule } from './chat/chat.module';
 import { UserPreferencesModule } from './user-preferences/user-preferences.module';
 
-// TODO add authentication. Ask "Can you give step by steps details on how to setup and start my mongodb server?"
+
 @Module({
   imports: [
-    MongooseModule.forRoot('mongodb://127.0.0.1:27017/test', {
+   /* MongooseModule.forRoot('mongodb://127.0.0.1:27017/test', {
+      connectionFactory: (connection) => {
+        console.log('Connected to MongoDB');
+        return connection;
+      },
+    }),*/
+    MongooseModule.forRoot(process.env.DB_URI, {
+      //useNewUrlParser: true,
+      // useUnifiedTopology: true,
       connectionFactory: (connection) => {
         console.log('Connected to MongoDB');
         return connection;

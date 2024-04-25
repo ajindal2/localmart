@@ -1,6 +1,7 @@
 import { Injectable, Inject, BadRequestException } from '@nestjs/common';
 import { CacheService } from 'src/cache/cache.service';
 
+
 @Injectable()
 export class LocationService {
     constructor(private cacheService: CacheService) {}
@@ -26,7 +27,7 @@ export class LocationService {
         }
 
         try {
-            const url = `https://maps.googleapis.com/maps/api/geocode/json?latlng=${lat},${lng}&key=AIzaSyCjS6WbSux7d1QQcjENuojKTvAzAtH9xn8`;
+            const url = `https://maps.googleapis.com/maps/api/geocode/json?latlng=${lat},${lng}&key=${process.env.GEO_API_KEY}`;
             const response = await fetch(url);
             const data = await response.json();
 
@@ -69,7 +70,7 @@ export class LocationService {
         if (cached) return cached;
     
         try {
-            const url = `https://maps.googleapis.com/maps/api/geocode/json?address=${postalCode}&key=AIzaSyCjS6WbSux7d1QQcjENuojKTvAzAtH9xn8`;
+            const url = `https://maps.googleapis.com/maps/api/geocode/json?address=${postalCode}&key=${process.env.GEO_API_KEY}`;
             const response = await fetch(url);
             const data = await response.json();
     
