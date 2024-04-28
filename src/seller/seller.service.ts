@@ -40,7 +40,7 @@ export class SellerService {
   
       // Now, 'user' has the properties of the User document
       const userId = user._id;
-      const userName = user.userName;
+      const displayName = user.displayName;
   
       // Fetch the UserProfile object using userId from Seller object
       const userProfile = await this.userProfileModel.findOne({ userId: seller.userId }).exec();
@@ -55,7 +55,7 @@ export class SellerService {
       // return the user details of seller
       return {
         userId,
-        userName,
+        displayName,
         profilePicture
       };
     } catch (error) {

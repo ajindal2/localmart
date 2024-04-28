@@ -149,7 +149,7 @@ export class RatingService {
       const sellerProfile = await this.userProfileModel.findOne({ userId: seller.userId })
       .populate({
         path: 'userId',
-        select: 'displayName date', // Only fetch the userName field
+        select: 'displayName date', // Only fetch the displayName field
       })
       .exec();
       

@@ -282,13 +282,13 @@ export class ChatService {
         listingId: listingId,
         sellerId: sellerId,
       })
-      .populate({ path: 'buyerId', select: 'userName' }) // Populate buyerId to get userName
+      .populate({ path: 'buyerId', select: 'displayName' }) // Populate buyerId to get displayName
       .exec();
 
       // Map over the chats to extract buyer information with profile picture
       const buyersInfo = await Promise.all(chats.map(async chat => {
 
-      if (chat && chat.buyerId && 'userName' in chat.buyerId) {
+      if (chat && chat.buyerId && 'displayName' in chat.buyerId) {
         // Fetch UserProfile for the populated buyerId
         const userProfile = await this.userProfileModel.findOne({ userId: chat.buyerId._id }).exec();
         if (!userProfile) {
@@ -297,7 +297,7 @@ export class ChatService {
     
         return {
           buyerId: chat.buyerId._id,
-          userName: chat.buyerId.userName,
+          displayName: chat.buyerId.displayName,
           profilePicture: userProfile.profilePicture,
         };
       } else  {

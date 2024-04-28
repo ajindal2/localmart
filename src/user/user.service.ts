@@ -16,15 +16,7 @@ export class UserService {
   }
   
   async createUser(createUserDTO: CreateUserDTO): Promise<User> {
-    const { userName, displayName, emailAddress } = createUserDTO;
-
-    // Check for existing user by username with case-insensitive search
-    const existingUserByUsername = await this.userModel.findOne({ 
-      userName: { $regex: new RegExp('^' + userName + '$', 'i') }
-    }).exec();
-    if (existingUserByUsername) {
-      throw new ConflictException(`Username '${userName}' is already taken.`);
-    }
+    const { displayName, emailAddress } = createUserDTO;
 
     // Check for existing user by email with case-insensitive search
     const existingUserByEmail = await this.userModel.findOne({
@@ -88,10 +80,6 @@ export class UserService {
         throw new InternalServerErrorException('An unexpected error occurred');
       }
     }
-  }
-
-  async findByUsername(userName: string): Promise<User> {
-    return await this.userModel.findOne({ userName }).exec();
   }
 
   // Fetch a user by ID

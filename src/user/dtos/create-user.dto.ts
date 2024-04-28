@@ -1,12 +1,6 @@
 import { IsString, IsEmail, MinLength, IsOptional, Matches, IsAlphanumeric, Length, MaxLength} from 'class-validator';
 
 export class CreateUserDTO {
-  @IsString({ message: 'Username must be a string.' })
-  @MinLength(4, { message: 'Username must be at least 4 characters long.' })
-  @MaxLength(10, { message: 'Username can be maximum 10 characters long.' })
-  @Matches(/^(?=.*[A-Za-z])[A-Za-z\d]*$/, { message: 'Username must contain at least one letter and can only contain letters and numbers.' })
-  userName: string;
-
   @IsString({ message: 'Display name must be a string' })
   @Length(2, 30, { message: 'Display name must be between 2 and 30 characters' })
   @Matches(/^[A-Za-z]+$/, {

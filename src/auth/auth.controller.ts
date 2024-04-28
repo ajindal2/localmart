@@ -54,14 +54,6 @@ export class AuthController {
     return { message: 'If your email address is registered with us, you will receive an email with a new password.' };
   }
 
-  @Post('forgot-username')
-  @UseGuards(ThrottlerGuard) 
-  @Throttle({ default: { limit: 5, ttl: 60000 } })
-  async forgotUserName(@Body('email') email: string): Promise<{ message: string }> {
-    await this.authService.handleForgotUserName(email);
-    return { message: 'If your email address is registered with us, you will receive an email with your username.' };
-  }
-
   @Post('/refresh')
   @UseGuards(ThrottlerGuard) 
   @Throttle({ default: { limit: 20, ttl: 60000 } })

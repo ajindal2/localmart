@@ -20,8 +20,8 @@ export class AuthService {
     private mailerService: MailerService
   ) {}
 
-  async validateUser(username: string, password: string): Promise<any> {
-    const user = await this.userService.findByUsername(username);
+  async validateUser(email: string, password: string): Promise<any> {
+    const user = await this.userService.findByEmail(email);
     if(user) {
       const isPasswordMatch = await bcrypt.compare(
         password,
@@ -35,13 +35,12 @@ export class AuthService {
     }
 
   async login(user: any) {
-    const payload = { username: user.userName, userId: user._id };
+    const payload = { email: user.emailAddress, userId: user._id };
     const refreshToken = await this.createRefreshToken(user);
 
     return {
       user: {
         _id: user._id,
-        userName: user.userName,
         email: user.emailAddress,
       },
       access_token: this.jwtService.sign(payload),
@@ -65,7 +64,7 @@ export class AuthService {
       await this.mailerService.sendMail({
         //to: email,
         to: 'aanchaljindal@gmail.com',
-        from: 'rahulgarg123@yahoo.com',
+        from: 'donotreply@farmvox.com',
         subject: 'Your new password',
         template: 'password-reset',
         context: {
@@ -78,61 +77,14 @@ export class AuthService {
       console.log("Error in Mail service: ", error);
     }
   }
-
-  async handleForgotUserName(email: string): Promise<void> {
-    try {
-      const user = await this.userService.findByEmail(email);
-      
-      if (!user) {
-        // Log the event and silently fail to prevent email enumeration
-        console.log(`Forgot password attempted for non-existent email: ${email}`);
-        return;
-      }
-
-      await this.mailerService.sendMail({
-        //to: email,
-        to: 'aanchaljindal@gmail.com',
-        from: 'rahulgarg123@yahoo.com',
-        subject: 'Your Username',
-        template: 'send-username',
-        context: {
-          userName: user.userName,
-        },
-      }).catch((mailError) => {
-        console.error("Error sending email: ", mailError);
-      });
-    } catch (error) {
-      console.log("Error in Mail service: ", error);
-    }
-  }
-
-  /*async sendContactEmail(contactData: ContactUsDTO): Promise<void> {
-    try {
-      await this.mailerService.sendMail({
-        to: 'support@yourcompany.com', // Your support email address
-        from: contactData.email, // User's email address
-        subject: `Contact Us - ${contactData.subject}`,
-        html: `Message from ${contactData.displayName}: <br><br> ${contactData.message}`,
-        attachments: [
-          {
-            filename: contactData.attachment?.originalname,
-            path: contactData.attachment?.path
-          }
-        ].filter(attachment => !!attachment.path) // Ensure there is a file to attach
-      });
-    } catch (error) {
-      console.error('Failed to send contact email', error);
-      throw new Error('Failed to send your message, please try again later.');
-    }
-  }*/
   
   async sendContactUsMail(email: string, subject: string, message: string, attachment?: Express.Multer.File): Promise<void> {
     try {
       const mailOptions = {
         //from: email,
-        //to: 'support@farmvox.com', 
-        to: 'aanchaljindal@gmail.com',
-        from: 'rahulgarg123@yahoo.com',
+        to: 'support@farmvox.com', 
+        //to: 'aanchaljindal@gmail.com',
+        //from: 'rahulgarg123@yahoo.com',
         subject: subject,
         template: 'contact-us',
         context: {
@@ -163,7 +115,7 @@ export class AuthService {
   }
 
   async createAccessToken(user: any): Promise<string> {
-    return this.jwtService.sign({ userId: user._id, username: user.userName });
+    return this.jwtService.sign({ userId: user._id, email: user.emailAddress });
   }
 
   private async createRefreshToken(user: any): Promise<string> {
