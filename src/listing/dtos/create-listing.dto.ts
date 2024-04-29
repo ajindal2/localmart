@@ -1,8 +1,10 @@
 import { Type } from 'class-transformer';
 import { IsString, IsNumber, IsOptional, IsNotEmpty, IsMongoId, IsArray, ArrayNotEmpty, IsIn, ValidateNested } from 'class-validator';
 import { LocationDTO } from 'src/location/dtos/location.dto';
+import { CategoryDTO } from './category.dto';
 
 export class CreateListingDTO {
+  
     @IsNotEmpty({ message: 'Title cannot be empty' })
     @IsString()
     title: string;
@@ -31,4 +33,8 @@ export class CreateListingDTO {
     @ValidateNested()
     @Type(() => LocationDTO)
     location: LocationDTO; // Location is required
+
+    @ValidateNested()
+    @Type(() => CategoryDTO)
+    category: CategoryDTO;
   }

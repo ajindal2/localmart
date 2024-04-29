@@ -5,6 +5,25 @@ import { LocationSchema } from '../../location/schemas/location.schema';
 
 export type ListingDocument = HydratedDocument<Listing>;
 
+
+enum MainCategory {
+  Plants = "Plants",
+  Produce = "Produce",
+  Eggs = "Eggs",
+  Honey = "Honey",
+  Dairy = "Dairy",
+  Other = "Other"
+}
+
+const subCategoryEnum = {
+  Plants: [],
+  Produce: [],
+  Eggs: [], 
+  Honey: [],
+  Dairy: [],
+  Other: []
+};
+
 @Schema()
 export class Listing {
     @Prop({ required: true })
@@ -43,6 +62,31 @@ export class Listing {
     
     @Prop({ required: true, type: LocationSchema })
     location: typeof LocationSchema;
+
+    @Prop({
+      required: true,
+      type: {
+        mainCategory: {
+          type: String,
+          enum: Object.values(MainCategory),
+        },
+        subCategories: [{
+          type: String,
+          validate: {
+            validator: function (v) {
+              // Ensure the subcategories match the enum depending on the main category
+              // 'this' refers correctly to the document instance in a traditional function
+              return subCategoryEnum[this.mainCategory].includes(v);
+            },
+            message: props => `${props.value} is not a valid subcategory for ${props.instance.mainCategory}`
+          }
+        }],
+      }
+    })
+    category: {
+      mainCategory: MainCategory;
+      subCategories: string[];
+    };
   }
 
 export const ListingSchema = SchemaFactory.createForClass(Listing);

@@ -8,6 +8,7 @@ import { Seller } from 'src/seller/schemas/seller.schema';
 import { LocationDTO } from 'src/location/dtos/location.dto';
 import axios from 'axios';
 import { UpdateListingDTO } from './dtos/update-listing.dto';
+import { CategoryDTO } from './dtos/category.dto';
 
 @Injectable()
 export class ListingService {
@@ -198,7 +199,7 @@ export class ListingService {
           locationData = JSON.parse(updateListingDto.location);
         } catch (error) {
           console.log('Invalid location data: ', updateListingDto.location);
-          throw new Error('Invalid location data');
+          throw new BadRequestException('Invalid location data');
         }
       } else {
         locationData = updateListingDto.location;
@@ -219,25 +220,27 @@ export class ListingService {
       listing.imageUrls = updateListingDto.imageUrls; // Assuming new images are provided
       listing.location = convertedLocation; // Or handle location update logic
 
-      //Commenting since this should never get executed. We are always setting the locationData on clinet by calling location controller when only zipcode is enetred by user.
-      /*if (locationData && locationData.postalCode && !locationData.coordinates) {
-        // Only ZIP code provided, fetch coordinates and city from Google API
-        const isValidZipcode = await this.isZipcodeValid(locationData.postalCode);
-        if (!isValidZipcode) {
-          console.log('Invalid ZIP code: ', locationData.postalCode);
-          throw new Error('Invalid ZIP code');
+      let category = updateListingDto.category;
+      if (category && typeof category === 'string') {
+        try {
+          category = JSON.parse(category);
+          listing.category = {
+            mainCategory: category.mainCategory,
+            subCategories: category.subCategories || []
+          }
+        } catch (error) {
+          throw new BadRequestException('Invalid JSON format for category.');
         }
-    
-        // Fetch full location details based on the ZIP code
-        const fullLocationData = await this.fetchLocationFromZipcode(locationData.postalCode);
-        listing.location = fullLocationData;
-      }*/
+      }
+
     
       // Save the updated listing
       return await listing.save();
     } catch (error) {
       console.error(`Error updating listing ${listingId}`, error);
       if (error.name === 'NotFoundException') {
+        throw error;
+      }  else if (error.name === 'BadRequestException') {
         throw error;
       } else if (error.name === 'ValidationError') {
         throw new BadRequestException('DB validation failed');
@@ -303,7 +306,7 @@ async createListing(userId: string, createListingDto: CreateListingDTO): Promise
         locationData = JSON.parse(createListingDto.location);
       } catch (error) {
         console.log('Invalid location data: ', createListingDto.location);
-        throw new Error('Invalid location data');
+        throw new BadRequestException('Invalid location data');
       }
     } else {
       locationData = createListingDto.location;
@@ -316,12 +319,25 @@ async createListing(userId: string, createListingDto: CreateListingDTO): Promise
       await seller.save();
     }
 
+    let category = createListingDto.category;
+    if (category && typeof category === 'string') {
+      try {
+        category = JSON.parse(category);
+      } catch (error) {
+        throw new BadRequestException('Invalid JSON format for category.');
+      }
+    }
+
     // Create a new listing
     const newListing = new this.listingModel({
       ...createListingDto,
       sellerId: seller._id,
       state: 'Available',
-      location: convertedLocation
+      location: convertedLocation,
+      category: {
+        mainCategory: category.mainCategory,
+        subCategories: category.subCategories || []
+      },
     });
 
     seller.location = convertedLocation;
@@ -348,9 +364,11 @@ async createListing(userId: string, createListingDto: CreateListingDTO): Promise
 
     return await newListing.save();
   } catch (error) {
-    console.error(`Error creating listing`, error);
+      console.error(`Error creating listing`, error);
       if (error.name === 'ValidationError') {
         throw new BadRequestException('DB validation failed');
+      } else if (error.name === 'BadRequestException') {
+        throw error;
       } else {
         throw new InternalServerErrorException('An unexpected error occurred');
       }
