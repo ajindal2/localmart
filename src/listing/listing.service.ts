@@ -232,7 +232,6 @@ export class ListingService {
           throw new BadRequestException('Invalid JSON format for category.');
         }
       }
-
     
       // Save the updated listing
       return await listing.save();

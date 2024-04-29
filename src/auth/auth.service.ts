@@ -62,9 +62,10 @@ export class AuthService {
       await this.userService.updateSystemPassword(user._id, newPassword); 
 
       await this.mailerService.sendMail({
+        // TODO change it to users email
         //to: email,
         to: 'aanchaljindal@gmail.com',
-        from: 'donotreply@farmvox.com',
+        from: 'support@farmvox.com',
         subject: 'Your new password',
         template: 'password-reset',
         context: {
@@ -81,10 +82,7 @@ export class AuthService {
   async sendContactUsMail(email: string, subject: string, message: string, attachment?: Express.Multer.File): Promise<void> {
     try {
       const mailOptions = {
-        //from: email,
         to: 'support@farmvox.com', 
-        //to: 'aanchaljindal@gmail.com',
-        //from: 'rahulgarg123@yahoo.com',
         subject: subject,
         template: 'contact-us',
         context: {
