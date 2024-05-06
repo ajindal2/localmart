@@ -19,7 +19,7 @@ export class User extends Document {
     default: Date.now, // Sets the default value to the current date and time
     immutable: true,  // Makes the field non-editable after document creation
   })
-  date: Date; // Date when the user joined localmart
+  date: Date; // Date when the user joined
 
   @Prop([String])
   pushTokens: string[];

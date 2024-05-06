@@ -14,17 +14,18 @@ import { LocationModule } from './location/location.module';
 import { CacheModule } from './cache/cache.module';
 import { ChatModule } from './chat/chat.module';
 import { UserPreferencesModule } from './user-preferences/user-preferences.module';
+import { ImageUploadModule } from './image-upload/image-upload.module';
 
 
 @Module({
   imports: [
-   /* MongooseModule.forRoot('mongodb://127.0.0.1:27017/test', {
+   /*MongooseModule.forRoot('mongodb://127.0.0.1:27017/test', {
       connectionFactory: (connection) => {
         console.log('Connected to MongoDB');
         return connection;
       },
     }),*/
-    MongooseModule.forRoot(process.env.DB_URI, {
+     MongooseModule.forRoot(process.env.DB_URI, {
       //useNewUrlParser: true,
       // useUnifiedTopology: true,
       connectionFactory: (connection) => {
@@ -44,6 +45,7 @@ import { UserPreferencesModule } from './user-preferences/user-preferences.modul
     CacheModule,
     ChatModule,
     UserPreferencesModule,
+    ImageUploadModule,
   ],
   controllers: [AppController],
   providers: [AppService],

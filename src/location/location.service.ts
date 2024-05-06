@@ -12,7 +12,6 @@ export class LocationService {
         const cached = this.cacheService.get(cacheKey);
 
         if (cached) {
-            console.log('Inside cache');
             // Check if the cached value is an error placeholder
             if (cached.error) {
                 // Handle the previously cached error case, e.g., by retrying after a certain time

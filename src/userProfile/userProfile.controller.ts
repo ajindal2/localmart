@@ -4,13 +4,15 @@ import { CreateUserProfileDTO } from './dtos/create-userProfile.dto';
 import { UpdateUserProfileDTO } from './dtos/update-userProfile.dto';
 import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { diskStorage } from 'multer';
 import { Request } from 'express';
+import { ImageUploadService } from 'src/image-upload/image-upload.service';
 
 
 @Controller('userProfile')
 export class UserProfileController {
-  constructor(private userProfileService: UserProfileService) {}
+  constructor(private userProfileService: UserProfileService,
+    private imageUploadService: ImageUploadService 
+    ) {}
 
   @UseGuards(JwtAuthGuard)
   @Post()
@@ -95,16 +97,7 @@ export class UserProfileController {
 
   @Put('/:userId/image')
   @UseGuards(JwtAuthGuard)
-  @UseInterceptors(FileInterceptor('file', {
-    storage: diskStorage({
-      destination: './uploads', // specify the destination directory
-      filename: (req, file, callback) => {
-        // generate a unique filename
-        const uniqueName = `${Date.now()}-${file.originalname}`;
-        callback(null, uniqueName);
-      },
-    }),
-  }))
+  @UseInterceptors(FileInterceptor('file'))
   async updateProfileImage(
     @UploadedFile() file: Express.Multer.File, @Req() req: Request,
     @Param('userId') userId: string) {
@@ -125,11 +118,7 @@ export class UserProfileController {
 
       if (!file) throw new BadRequestException('Invalid file upload.');
 
-      const protocol = req.headers['x-forwarded-proto'] || req.protocol || 'http'; 
-      const host = req.headers['host'] || req.get('host') || 'localhost:3000';
-
-      // Process the files, store them, and get their URLs
-      const imageUrl =  `${protocol}://${host}/uploads/${file.filename}`;
+      const imageUrl = await  this.imageUploadService.uploadFile(userId, file, 'profile')
 
       const updatedProfile = await this.userProfileService.createOrUpdateProfileWithImage(userId, imageUrl);
       return { profile: updatedProfile };

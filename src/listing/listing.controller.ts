@@ -4,14 +4,17 @@ import { QueryListingDTO } from './dtos/query-listing.dto';
 import { CreateListingDTO } from './dtos/create-listing.dto';
 import { FilesInterceptor } from '@nestjs/platform-express';
 import { Request } from 'express';
-import { diskStorage } from 'multer';
 import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
 import { UpdateListingDTO } from './dtos/update-listing.dto';
 import { PaginatedListingsResult } from './listing.service'; 
+import { ImageUploadService } from 'src/image-upload/image-upload.service';
 
 @Controller('listings')
 export class ListingController {
-  constructor(private listingService: ListingService) { }
+  constructor(
+    private listingService: ListingService,
+    private imageUploadService: ImageUploadService 
+    ) { }
 
   @Get('/')
   async getListings(
@@ -36,18 +39,11 @@ export class ListingController {
 
   @UseGuards(JwtAuthGuard)
   @Post('/:userId')
-  @UseInterceptors(FilesInterceptor('images', 10, {
-    storage: diskStorage({
-      destination: './uploads', // specify the destination directory
-      filename: (req, file, callback) => {
-        // generate a unique filename
-        const uniqueName = `${Date.now()}-${file.originalname}`;
-        callback(null, uniqueName);
-      },
-    }),
-  }))
+  @UseInterceptors(FilesInterceptor('images', 10))
   async createListing(
-    @UploadedFiles() files: Express.Multer.File[], @Req() req: Request, @Param('userId') userId: string, 
+    @UploadedFiles() files: Express.Multer.File[], 
+    @Req() req: Request, 
+    @Param('userId') userId: string, 
     @Body() createListingDto: CreateListingDTO) {
 
       if (!req.user) {
@@ -70,16 +66,12 @@ export class ListingController {
         throw new BadRequestException('No images provided');
       }
 
-      const protocol = req.headers['x-forwarded-proto'] || req.protocol || 'http'; 
-      const host = req.headers['host'] || req.get('host') || 'localhost:3000';
+      // Use ImageUploadService to upload images to S3 and get their URLs
+      const imageUrls = await Promise.all(files.map(file => 
+        this.imageUploadService.uploadFile(userId, file, 'listing')
+      ));
 
-      // Process the files, store them, and get their URLs
-      const imageUrls = files.map(file => {
-        const fileUrl = `${protocol}://${host}/uploads/${file.filename}`;
-        return fileUrl;
-      });
-
-      // Add the image URLs to the DTO
+      // Add the S3 image URLs to the DTO
       createListingDto.imageUrls = imageUrls;
 
       // Now call the service method to create the listing
@@ -88,15 +80,7 @@ export class ListingController {
 
   @UseGuards(JwtAuthGuard)
   @Put('/:id')
-  @UseInterceptors(FilesInterceptor('images', 10, {
-    storage: diskStorage({
-      destination: './uploads',
-      filename: (req, file, callback) => {
-        const uniqueName = `${Date.now()}-${file.originalname}`;
-        callback(null, uniqueName);
-      },
-    }),
-  }))
+  @UseInterceptors(FilesInterceptor('images', 10))
   async updateListing(
     @Param('id') id: string,
     @UploadedFiles() files: Express.Multer.File[],
@@ -117,14 +101,9 @@ export class ListingController {
       throw new BadRequestException('No images provided');
     }
 
-    const protocol = req.headers['x-forwarded-proto'] || req.protocol || 'http'; 
-    const host = req.headers['host'] || req.get('host') || 'localhost:3000';
-
-    // Process the files, store them, and get their URLs
-    const imageUrls = files.map(file => {
-      const fileUrl = `${protocol}://${host}/uploads/${file.filename}`;
-      return fileUrl;
-    });
+    const imageUrls = await Promise.all(files.map(file => 
+      this.imageUploadService.uploadFile(userId, file, 'listing')
+    ));
 
     // Add the image URLs to the DTO
     updateListingDto.imageUrls = imageUrls;
