@@ -4,7 +4,7 @@ import { UserService } from 'src/user/user.service';
 import { CreateUserDTO } from 'src/user/dtos/create-user.dto';
 import { LocalAuthGuard } from 'src/auth/guards/local-auth.guard';
 import { RefreshTokenDTO } from './dtos/fresh-token.dto';
-import { SkipThrottle, Throttle, ThrottlerGuard } from '@nestjs/throttler';
+import { Throttle, ThrottlerGuard } from '@nestjs/throttler';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { ContactUsDTO } from './dtos/contact-us.dto';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';

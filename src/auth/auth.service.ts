@@ -7,7 +7,6 @@ import { Model } from 'mongoose';
 import { UserService } from 'src/user/user.service';
 import { randomBytes } from 'crypto';
 import { MailerService } from '@nestjs-modules/mailer'; 
-import { ContactUsDTO } from './dtos/contact-us.dto';
 
 
 @Injectable()
