@@ -2,6 +2,9 @@
   "name": "localmart",
   "version": "0.0.1",
   "description": "",
+  "engines": {
+    "node": "21.x"
+  },
   "author": "",
   "private": true,
   "license": "UNLICENSED",
