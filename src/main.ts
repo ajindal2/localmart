@@ -10,6 +10,7 @@ async function bootstrap() {
   app.enableCors();
   app.use('/uploads', express.static('uploads'));
   //app.useGlobalFilters(new NotFoundExceptionFilter()); // Apply globally
-  await app.listen(3000);
+  const port = process.env.PORT || 3000;
+  await app.listen(port);
 }
 bootstrap();
