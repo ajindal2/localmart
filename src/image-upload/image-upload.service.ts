@@ -17,8 +17,10 @@ export class ImageUploadService {
 
     async uploadFile(userId: string, file: Express.Multer.File, type: 'profile' | 'listing'): Promise<string> {
         let keyPrefix = `${userId}/`;
+        const extension = file.originalname.split('.').pop(); // Get file extension from original name
+
         if (type === 'profile') {
-            keyPrefix += 'profile/profile-pic.jpg'; // For one profile pic only
+            keyPrefix += `profile/profile-pic.${extension}`; // For one profile pic only
         } else if (type === 'listing') {
             keyPrefix += `listing/${Date.now()}-${file.originalname}`;
         }

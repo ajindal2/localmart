@@ -48,11 +48,10 @@ export class ChatService {
   }
 
   async createSystemChat(buyerId: string, listingId: string): Promise<Chat> {
-    const SYSTEM_USER_ID = '660edb8ce2b6505ec2f589eb';
 
     try {
       const systemChatDTO: Partial<CreateChatDTO> = {
-        sellerId: SYSTEM_USER_ID,
+        sellerId: process.env.SYSTEM_USER_ID,
         buyerId: buyerId,
         listingId: listingId, // Use listingId as part of the query to ensure uniqueness for this buyer and listing
         isSystemMessage: true,
@@ -68,7 +67,7 @@ export class ChatService {
   
       // Construct the message DTO for the system message
       const createMessageDTO: CreateMessageDTO = {
-        senderId: SYSTEM_USER_ID,
+        senderId: process.env.SYSTEM_USER_ID,
         content: 'Please rate your experience with the seller. Click here to rate.',
         sentAt: new Date(), // Optional, can be omitted to use the default server timestamp
       };
