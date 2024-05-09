@@ -145,18 +145,27 @@ export class RatingService {
       .populate('ratedUser', 'displayName')
       .exec();
     
-      // Step 2: Fetch the UserProfile of the seller
-      const sellerProfile = await this.userProfileModel.findOne({ userId: seller.userId })
+      // Step 2: Fetch or Create the UserProfile of the seller
+      const sellerProfile = await this.userProfileModel.findOneAndUpdate(
+        { userId: seller.userId }, // Query to find the document
+        { $setOnInsert: { userId: seller.userId } }, // Set initial fields if creating new
+        {
+          new: true, // Return the modified document instead of the original
+          upsert: true, // Create the document if it doesn't exist
+          populate: { path: 'userId', select: 'displayName date' } // Population options
+        }
+      ).exec();
+
+      /*const sellerProfile = await this.userProfileModel.findOne({ userId: seller.userId })
       .populate({
         path: 'userId',
-        select: 'displayName date', // Only fetch the displayName field
+        select: 'displayName date', 
       })
       .exec();
-      
 
       if (!sellerProfile) {
         throw new NotFoundException('Seller profile not found for sellerId', sellerId);
-      }
+      }*/
 
       if (!ratings || ratings.length === 0) {
         // Handle the case where no ratings are found

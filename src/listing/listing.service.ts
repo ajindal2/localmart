@@ -369,7 +369,7 @@ async createListing(userId: string, createListingDto: CreateListingDTO): Promise
       } else if (error.name === 'BadRequestException') {
         throw error;
       } else {
-        throw new InternalServerErrorException('An unexpected error occurred');
+        throw new InternalServerErrorException('An unexpected error occurred', error);
       }
   }
 }
