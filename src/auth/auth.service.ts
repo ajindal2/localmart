@@ -3,7 +3,7 @@ import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import { RefreshToken } from './schemas/refresh-token.schema';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
+import { Model, Types } from 'mongoose';
 import { UserService } from 'src/user/user.service';
 import { randomBytes } from 'crypto';
 import { MailerService } from '@nestjs-modules/mailer'; 
@@ -117,10 +117,11 @@ export class AuthService {
 
   private async createRefreshToken(user: any): Promise<string> {
     try {
-      // Set the expiry to 6 months.
-      const refreshToken = this.jwtService.sign({ userId: user._id }, { expiresIn: '180d' });
+      
+      // Set the expiry to 30 days.
+      const refreshToken = this.jwtService.sign({ userId: user._id }, { expiresIn: '30d' });
       const expiryDate = new Date();
-      expiryDate.setDate(expiryDate.getDate() + 7); // Set expiry date 7 days from now
+      expiryDate.setDate(expiryDate.getDate() + 30); // Set expiry date 30 days from now
 
       const refreshTokenDocument = new this.refreshTokenModel({
         token: refreshToken,
@@ -138,10 +139,6 @@ export class AuthService {
     }
   }
 
-  async findRefreshToken(token: string): Promise<RefreshToken> {
-    return await this.refreshTokenModel.findOne({ token }).exec();
-  }
-
   async validateRefreshToken(token: string): Promise<any> {
     try {
       if (!token) {
@@ -149,7 +146,10 @@ export class AuthService {
       }
 
       const payload = this.jwtService.verify(token);
-      const refreshToken = await this.refreshTokenModel.findOne({ token }).exec();
+      const refreshToken = await this.refreshTokenModel.findOne({
+        token: token,
+        userId: new Types.ObjectId(payload.userId)
+      }).exec();
 
       if (!refreshToken || refreshToken.userId.toString() !== payload.userId) {
         throw new UnauthorizedException('Invalid refresh token');
@@ -157,6 +157,8 @@ export class AuthService {
 
       // Ensure the refresh token is not expired
       if (refreshToken.expiryDate < new Date()) {
+        // Invalidate the old refresh token
+        await this.refreshTokenModel.deleteOne({ token });
         throw new UnauthorizedException('Expired refresh token');
       }
 
@@ -171,10 +173,10 @@ export class AuthService {
       refreshToken.lastUsedAt = new Date();
       await refreshToken.save();
 
-      return await this.userService.findByUserId(payload.userId);
+      return user;
     } catch (error) {
       console.error('Error in validateRefreshToken:', error);
-      if (error.name === 'NotFoundException') {
+      if (error.name === 'UnauthorizedException') {
         throw error;
       } else {
         throw error; // Re-throw the error so it can be caught and handled by the calling function
@@ -187,7 +189,7 @@ export class AuthService {
     try {
       const user = await this.validateRefreshToken(token);
       if (!user) {
-          throw new UnauthorizedException('Invalid refresh token');
+          throw new UnauthorizedException('Failed to validate refresh token');
       }
 
       // Invalidate the old refresh token
@@ -212,4 +214,32 @@ export class AuthService {
       }
     }
   }
+
+  async invalidateRefreshToken(token: string, userId: string): Promise<void> {
+    const result = await this.refreshTokenModel.deleteOne({
+      token: token,
+      userId: new Types.ObjectId(userId)
+    });
+
+    if (result.deletedCount === 0) {
+      console.error(`Could not invalidate Refresh token ${token}`);
+    }
+  }
+
+  // Commenting the code to invalidate the refresh token by setting the expiry to now.
+  /*async invalidateRefreshToken(token: string, userId: string): Promise<void> {
+    const update = { expiryDate: new Date() }; // Invalidate the token by setting expiry to now
+    const options = { new: true };
+
+    const refreshToken = await this.refreshTokenModel.findOneAndUpdate({
+      token: token,
+      userId: new Types.ObjectId(userId)
+    }, update, options);
+
+    console.log('refreshToken in invalidate: ', refreshToken);
+
+    if (!refreshToken) {
+      console.error(`Could not invalidate Refresh token ${token}`);
+    }
+  }*/
 }

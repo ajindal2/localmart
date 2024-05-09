@@ -30,6 +30,7 @@ export class ImageUploadService {
             Key: keyPrefix,
             Body: file.buffer,
             ContentType: file.mimetype,
+            CacheControl: 'no-cache, max-age=0',
         };
 
         try {

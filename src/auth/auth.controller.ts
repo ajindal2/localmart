@@ -1,4 +1,4 @@
-import { Controller, Post, Body, UseGuards, Request, UsePipes, ValidationPipe, BadRequestException, UnauthorizedException, HttpCode, UseInterceptors, UploadedFile } from '@nestjs/common';
+import { Controller, Post, Body, UseGuards, UsePipes, ValidationPipe, BadRequestException, Request, UnauthorizedException, HttpCode, UseInterceptors, UploadedFile, HttpStatus, Req } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { UserService } from 'src/user/user.service';
 import { CreateUserDTO } from 'src/user/dtos/create-user.dto';
@@ -63,6 +63,26 @@ export class AuthController {
       throw new UnauthorizedException();
     }
     return { access_token, refresh_token };
+  }
+
+  @Post('/logout')
+  @UseGuards(JwtAuthGuard) // Ensures user is logged in before they can log out
+  @HttpCode(HttpStatus.OK)
+  async logout(@Req() req: Express.Request, @Body() refreshTokenDto: RefreshTokenDTO): Promise<{ message: string }> {
+    const refreshToken = refreshTokenDto.refreshToken;
+
+    if (!req.user) {
+      return { message: 'No user object found in request for logout' };
+    }
+
+    // Extract userId and check if it exists
+    const userIdFromReq = req.user['userId']; 
+    if (!userIdFromReq) {
+      throw new UnauthorizedException('User ID not found in request');
+    }
+  
+    await this.authService.invalidateRefreshToken(refreshToken, userIdFromReq);
+    return { message: 'Logged out successfully' };
   }
 
   @Post('/contact-us')
