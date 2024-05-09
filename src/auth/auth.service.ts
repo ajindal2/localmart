@@ -158,7 +158,10 @@ export class AuthService {
       // Ensure the refresh token is not expired
       if (refreshToken.expiryDate < new Date()) {
         // Invalidate the old refresh token
-        await this.refreshTokenModel.deleteOne({ token });
+        await this.refreshTokenModel.deleteOne({
+          token: token,
+          userId: new Types.ObjectId(payload.userId)
+        });
         throw new UnauthorizedException('Expired refresh token');
       }
 
@@ -193,7 +196,10 @@ export class AuthService {
       }
 
       // Invalidate the old refresh token
-      await this.refreshTokenModel.deleteOne({ token });
+      const result = await this.refreshTokenModel.deleteOne({
+        token: token,
+        userId: new Types.ObjectId(user._id)
+      });
 
       // Generate a new refresh token
       const newRefreshToken = await this.createRefreshToken(user);
