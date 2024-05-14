@@ -1,4 +1,4 @@
-import { Controller, Post, Get, Put, Delete, Body, Param, Query, UseInterceptors, UploadedFiles, Req, BadRequestException, UseGuards, UnauthorizedException, Patch, ParseIntPipe } from '@nestjs/common';
+import { Controller, Post, Get, Put, Delete, Body, Param, Query, UseInterceptors, UploadedFiles, Req, BadRequestException, UseGuards, UnauthorizedException, Patch, ParseIntPipe, InternalServerErrorException } from '@nestjs/common';
 import { ListingService } from './listing.service';
 import { QueryListingDTO } from './dtos/query-listing.dto';
 import { CreateListingDTO } from './dtos/create-listing.dto';
@@ -8,6 +8,8 @@ import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
 import { UpdateListingDTO } from './dtos/update-listing.dto';
 import { PaginatedListingsResult } from './listing.service'; 
 import { ImageUploadService } from 'src/image-upload/image-upload.service';
+import mongoose from 'mongoose';
+
 
 @Controller('listings')
 export class ListingController {
@@ -60,21 +62,31 @@ export class ListingController {
       if (userIdFromReq !== userId) {
         throw new UnauthorizedException('User is not authorized to create new listing');
       }
-  
+
+      // Create the listing without images
+      /*const listing = await this.listingService.createListing(userId, createListingDto);
+      if (!listing) {
+        throw new InternalServerErrorException('Failed to create listing');
+      }*/
+
       // Check if images are uploaded
       if (!files || files.length === 0) {
         throw new BadRequestException('No images provided');
       }
 
+      // Process images asynchronously
+      //this.processImagesAsynchronously(files, userId, listing._id);
+      //return listing;
+
       // Use ImageUploadService to upload images to S3 and get their URLs
       const imageUrls = await Promise.all(files.map(file => 
         this.imageUploadService.uploadFile(userId, file, 'listing')
-      ));
+       ));
 
-      // Add the S3 image URLs to the DTO
-      createListingDto.imageUrls = imageUrls;
+       // Add the S3 image URLs to the DTO
+       createListingDto.imageUrls = imageUrls;
 
-      // Now call the service method to create the listing
+       // Now call the service method to create the listing
       return await this.listingService.createListing(userId, createListingDto);
     }
 
@@ -129,5 +141,22 @@ export class ListingController {
   @Patch('/:listingId/status')
   async updateListingStatus(@Param('listingId') listingId: string, @Body('status') status: 'Sold') {
     return await this.listingService.updateListingStatus(listingId, status);
+  }
+
+  private async processImagesAsynchronously(files: Express.Multer.File[], userId: string, listingId: mongoose.Types.ObjectId): Promise<void> {
+    files.forEach(file => {
+      this.imageUploadService.uploadFile(userId, file, 'listing')
+        .then(url => {
+          this.listingService.updateListingWithImageUrl(listingId, url)
+        .catch(err => {
+            console.error(`Error updating listing with image URL: ${err.message} for userId: ${userId} and listingId: ${listingId}`);
+            throw new InternalServerErrorException("Failed to upload file");
+          });
+        })
+        .catch(err => {
+          console.error(`Error uploading image: ${err.message} for userId: ${userId} and listingId: ${listingId}`);
+          throw new InternalServerErrorException('An unexpected error occurred when uploading images');
+        });
+    });
   }
 }

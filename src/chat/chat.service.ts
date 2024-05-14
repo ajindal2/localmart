@@ -165,7 +165,15 @@ export class ChatService {
       }
 
       // Send a push notification to each of the recipient's devices
-      for (const pushToken of pushTokens) {
+      /*for (const pushToken of pushTokens) {
+        await this.sendPushNotification(pushToken, message.content, chatId.toString());
+      }*/
+
+      // De-deup the array of pushTokens 
+      const uniquePushTokens = [...new Set(pushTokens)];
+
+      // Send a push notification to each of the recipient's devices
+      for (const pushToken of uniquePushTokens) {
         await this.sendPushNotification(pushToken, message.content, chatId.toString());
       }
 

@@ -1,5 +1,5 @@
 import { BadRequestException, Injectable, InternalServerErrorException, NotFoundException } from '@nestjs/common';
-import { Model } from 'mongoose';
+import mongoose, { Model } from 'mongoose';
 import { InjectModel } from '@nestjs/mongoose';
 import { Listing } from './schemas/listing.schema';
 import { CreateListingDTO } from './dtos/create-listing.dto';
@@ -372,6 +372,20 @@ async createListing(userId: string, createListingDto: CreateListingDTO): Promise
         throw new InternalServerErrorException('An unexpected error occurred', error);
       }
   }
+}
+
+async updateListingWithImageUrl(listingId: mongoose.Types.ObjectId, imageUrl: string): Promise<void> {
+  const listing = await this.listingModel.findOne(listingId);
+  if (!listing) {
+    throw new NotFoundException('Listing not found: ${listingId}');
+  }
+
+  if (!listing.imageUrls) {
+    listing.imageUrls = [];
+  }
+
+  listing.imageUrls.push(imageUrl);
+  await listing.save();
 }
 
 private convertLocationDtoToSchema(locationDto: LocationDTO): any {

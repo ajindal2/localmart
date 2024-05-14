@@ -53,7 +53,7 @@ export class AuthService {
       
       if (!user) {
         // Log the event and silently fail to prevent email enumeration
-        console.log(`Forgot password attempted for non-existent email: ${email}`);
+        console.error(`Forgot password attempted for non-existent email: ${email}`);
         return;
       }
 
@@ -74,7 +74,7 @@ export class AuthService {
         console.error("Error sending email: ", mailError);
       });
     } catch (error) {
-      console.log("Error in Mail service: ", error);
+      console.error("Error in Mail service: ", error);
     }
   }
   

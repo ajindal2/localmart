@@ -5,7 +5,6 @@ import { LocationSchema } from '../../location/schemas/location.schema';
 
 export type ListingDocument = HydratedDocument<Listing>;
 
-
 enum MainCategory {
   Plants = "Plants",
   Produce = "Produce",
@@ -26,6 +25,9 @@ const subCategoryEnum = {
 
 @Schema()
 export class Listing {
+    @Prop({ type: mongoose.Schema.Types.ObjectId, auto: true })
+    _id?: Types.ObjectId;
+
     @Prop({ required: true })
     title: string;
   
