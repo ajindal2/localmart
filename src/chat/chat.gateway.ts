@@ -63,10 +63,10 @@ import { Chat } from './schemas/chat.schema';
             const chat = await this.chatService.addMessageToChat(new Types.ObjectId(chatId), createMessageDTO);
             // Include senderId in the message
             const messageToSend = {
-                ...chat.messages[chat.messages.length - 1],
+                messages: chat.messages,
                 senderId: client.id // or any other identifier you use for the user
             };
-            this.server.to(chat._id.toString()).emit('messageRcvd', [messageToSend]);
+            this.server.to(chat._id.toString()).emit('messageRcvd', messageToSend);
             //this.server.to(chat._id.toString()).emit('messageRcvd', chat.messages);
         } catch (error) {
             console.error('Error sending message', error);
