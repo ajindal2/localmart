@@ -8,6 +8,7 @@ import {
     ConnectedSocket,
     MessageBody,
 } from '@nestjs/websockets';
+import { UseGuards } from '@nestjs/common';
 import { Server, Socket } from 'socket.io';
 import { Logger } from '@nestjs/common';
 import { ChatService } from './chat.service';
@@ -16,6 +17,7 @@ import { validate } from 'class-validator';
 import { CreateChatDTO } from './dtos/create-chat.dto';
 import { Types } from 'mongoose';
 import { Chat } from './schemas/chat.schema';
+
 
 @WebSocketGateway({
     cors: {
@@ -47,8 +49,9 @@ import { Chat } from './schemas/chat.schema';
         }
     }*/
 
-   @SubscribeMessage('chat')
-   async handleChatEvent(@MessageBody() payload: { createMessageDTO: CreateMessageDTO, chatId: string }, @ConnectedSocket() client: Socket): Promise<void> {
+    //@UseGuards(WsJwtGuard) 
+    @SubscribeMessage('chat')
+    async handleChatEvent(@MessageBody() payload: { createMessageDTO: CreateMessageDTO, chatId: string }, @ConnectedSocket() client: Socket): Promise<void> {
         const { createMessageDTO, chatId } = payload;
 
         try {
@@ -58,9 +61,13 @@ import { Chat } from './schemas/chat.schema';
                 return;
             }
             const chat = await this.chatService.addMessageToChat(new Types.ObjectId(chatId), createMessageDTO);
-
-            console.log('Emitting chat event to: ',chat._id.toString());
-            this.server.to(chat._id.toString()).emit('messageRcvd', chat.messages);
+            // Include senderId in the message
+            const messageToSend = {
+                ...chat.messages[chat.messages.length - 1],
+                senderId: client.id // or any other identifier you use for the user
+            };
+            this.server.to(chat._id.toString()).emit('messageRcvd', [messageToSend]);
+            //this.server.to(chat._id.toString()).emit('messageRcvd', chat.messages);
         } catch (error) {
             console.error('Error sending message', error);
             client.emit('error', 'Error sending message');
@@ -69,13 +76,13 @@ import { Chat } from './schemas/chat.schema';
 
     @SubscribeMessage('joinRoom')
     handleJoinRoom(@MessageBody() chatId: string, @ConnectedSocket() client: Socket) {
-        console.log(`Client ${client.id} joined room: ${chatId}`);
+        //console.log(`Client ${client.id} joined room: ${chatId}`);
         client.join(chatId);
     }
 
     @SubscribeMessage('leaveRoom')
     handleLeaveRoom(@MessageBody() chatId: string, @ConnectedSocket() client: Socket) {
-      console.log(`Client ${client.id} left room: ${chatId}`);
+      //console.log(`Client ${client.id} left room: ${chatId}`);
       client.leave(chatId);
     }
 
@@ -103,7 +110,7 @@ import { Chat } from './schemas/chat.schema';
 
     afterInit(server: Server) {
         this.logger.log('Init');
-        console.log('Init');
+        //console.log('Init');
     }
 
     handleConnection(client: Socket, ...args: any[]) {
