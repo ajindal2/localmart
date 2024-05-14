@@ -64,7 +64,7 @@ import { Chat } from './schemas/chat.schema';
             // Include senderId in the message
             const messageToSend = {
                 messages: chat.messages,
-                senderId: client.id // or any other identifier you use for the user
+                senderId: createMessageDTO.senderId 
             };
             this.server.to(chat._id.toString()).emit('messageRcvd', messageToSend);
             //this.server.to(chat._id.toString()).emit('messageRcvd', chat.messages);
