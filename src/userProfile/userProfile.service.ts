@@ -41,7 +41,7 @@ export class UserProfileService {
       const objectId = new mongoose.Types.ObjectId(userId);
       const userProfile = await this.userProfileModel.findOne({ userId: objectId  });
       if (!userProfile) {
-        console.log('User profile not found to fetch user location ');
+        console.error(`User profile not found to fetch user location for ${userId}`);
         // Impotant to thro thsi exception since it is a 404 and we are checking for 404 in the FE
         throw new NotFoundException('User profile not found');
       }

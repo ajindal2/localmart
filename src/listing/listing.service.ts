@@ -166,7 +166,7 @@ export class ListingService {
     try {
     const listing = await this.listingModel.findById(id);
     if (!listing) {
-      console.log('ListingId not found: ', id);
+      console.error('ListingId not found: ', id);
       throw new NotFoundException('Listing not found');
     }
     return listing;
@@ -188,7 +188,7 @@ export class ListingService {
       // Find the listing by ID
       const listing = await this.listingModel.findById(listingId);
       if (!listing) {
-        console.log('ListingId not found: ', listingId);
+        console.error('ListingId not found: ', listingId);
         throw new NotFoundException('Listing not found');
       }
     
@@ -198,7 +198,7 @@ export class ListingService {
         try {
           locationData = JSON.parse(updateListingDto.location);
         } catch (error) {
-          console.log('Invalid location data: ', updateListingDto.location);
+          console.error('Invalid location data: ', updateListingDto.location);
           throw new BadRequestException('Invalid location data');
         }
       } else {
@@ -304,7 +304,7 @@ async createListing(userId: string, createListingDto: CreateListingDTO): Promise
       try {
         locationData = JSON.parse(createListingDto.location);
       } catch (error) {
-        console.log('Invalid location data: ', createListingDto.location);
+        console.error('Invalid location data: ', createListingDto.location);
         throw new BadRequestException('Invalid location data');
       }
     } else {

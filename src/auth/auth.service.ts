@@ -98,7 +98,7 @@ export class AuthService {
 
       await this.mailerService.sendMail(mailOptions);
     } catch (error) {
-      console.log(`Error in Mail service for email ${email}: `, error);
+      console.error(`Error in Mail service for email ${email}: `, error);
       if (error.name === 'ValidationError') {
         throw new BadRequestException('DB Validation failed');
       } else {

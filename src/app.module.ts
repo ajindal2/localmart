@@ -29,7 +29,6 @@ import { ImageUploadModule } from './image-upload/image-upload.module';
       //useNewUrlParser: true,
       // useUnifiedTopology: true,
       connectionFactory: (connection) => {
-        console.log('Connected to MongoDB');
         return connection;
       },
     }),

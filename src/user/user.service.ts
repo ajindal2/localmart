@@ -48,7 +48,7 @@ export class UserService {
     const hashedPassword = await bcrypt.hash(newPassword, 10);
     const updatedUser = await this.userModel.findByIdAndUpdate(userId, { password: hashedPassword }, { new: true }).exec();
     if (!updatedUser) {
-      console.log(`User with ID ${userId} not found`);
+      console.error(`User with ID ${userId} not found in updateSystemPassword`);
     }
     return updatedUser;
   }
@@ -58,7 +58,7 @@ export class UserService {
     try {
       const user = await this.userModel.findById(userId);
       if (!user) {
-        console.log('User not found: ', userId);
+        console.error(`User ${userId} not found in updatePassword `);
         throw new NotFoundException('User not found');
       }
 

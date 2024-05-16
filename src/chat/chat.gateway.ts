@@ -115,13 +115,13 @@ import { Chat } from './schemas/chat.schema';
 
     handleConnection(client: Socket, ...args: any[]) {
         this.logger.log(`Client connected: ${client.id}`);
-        console.log(`Client connected: ${client.id}`);
+        //console.log(`Client connected: ${client.id}`);
         //client.join(client.handshake.query['chatId']);
     }
 
     handleDisconnect(client: Socket) {
         this.logger.log(`Client disconnected: ${client.id}`);
-        console.log(`Client disconnected: ${client.id}`);
+        //console.log(`Client disconnected: ${client.id}`);
     }
 }
 

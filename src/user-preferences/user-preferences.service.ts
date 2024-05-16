@@ -42,7 +42,6 @@ export class UserPreferencesService {
         if (!updatedPreferences) {
         throw new NotFoundException(`User preferences could not be updated for user ID: ${userId}`);
         }
-        console.log('updatedPreferences isnide service: ', updatedPreferences);
         return updatedPreferences;
     } catch (error) {
         console.error(`Error fetching search distance for userId ${userId}`, error);
