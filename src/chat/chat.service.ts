@@ -9,6 +9,8 @@ import { User } from 'src/user/schemas/user.schema';
 import axios from 'axios';
 import { NotificationsCounter } from './schemas/notifications-counter.schema';
 import { UserProfile } from 'src/userProfile/schemas/userProfile.schema';
+import { LoggingService } from '../common/services/logging.service';
+
 
 @Injectable()
 export class ChatService {
@@ -18,8 +20,10 @@ export class ChatService {
     @InjectModel(Message.name) private messageModel: Model<Message>,
     @InjectModel(User.name) private userModel: Model<User>,
     @InjectModel(UserProfile.name) private userProfileModel: Model<UserProfile>,
-    @InjectModel(NotificationsCounter.name) private notificationsCounterModel: Model<NotificationsCounter>
-  ) {}
+    @InjectModel(NotificationsCounter.name) private notificationsCounterModel: Model<NotificationsCounter>,
+    private readonly loggingService: LoggingService) {
+      this.loggingService.setContext(ChatService.name);
+    }
 
   async createChat(createChatDTO: CreateChatDTO): Promise<Chat> {
     try {
@@ -43,7 +47,8 @@ export class ChatService {
       }
       return chat.toObject(); // Convert the Mongoose document to a plain JavaScript object
     } catch (error) {
-      throw new HttpException('Error creating chat', HttpStatus.INTERNAL_SERVER_ERROR);
+      this.loggingService.error(`Error creating chat for ${createChatDTO}`, error);
+      throw new InternalServerErrorException('Error creating chat');
     }
   }
 
@@ -77,59 +82,10 @@ export class ChatService {
   
       return updatedChat;
     } catch (error) {
-      throw new HttpException('Error creating system chat', HttpStatus.INTERNAL_SERVER_ERROR);
+      this.loggingService.error(`Error creating chat for buyer ${buyerId} and listing ${listingId}`, error);
+      throw new InternalServerErrorException('Error creating system chat');
     }
   }
-  
-  /*async createSystemChat(createChatDTO: CreateChatDTO): Promise<Chat> {
-    const SYSTEM_USER_ID = "your_system_user_id_here"; // Replace this with your actual system user ID
-  
-    try {
-      const systemChatDTO = {
-        ...createChatDTO,
-        sellerId: SYSTEM_USER_ID
-      };
-  
-      // Check if a chat between the system and the buyer already exists
-      let chat = await this.chatModel.findOne(systemChatDTO);
-  
-      if (!chat) {
-    
-        chat = new this.chatModel(systemChatDTO);
-        await chat.save();
-  
-        // Repopulate the newly saved chat with necessary details
-        chat = await this.chatModel.findById(chat._id)
-        .populate({ path: 'listingId' }) // Populate listing object. This is needed on FE to redirect to Viewlisting whne user clicks on listing header in the chat screen.
-        .populate({ path: 'sellerId', select: 'displayName' })
-        .populate({ path: 'buyerId', select: 'displayName' }) 
-        .populate({path: 'messages.senderId', select: 'displayName'})
-      } else {
-        // Ideally a system generated chat should never exist for the given listing and buyer.
-        chat = await this.chatModel.findById(chat._id)
-        .populate({ path: 'listingId' }) // Populate listing object. This is needed on FE to redirect to Viewlisting whne user clicks on listing header in the chat screen.
-        .populate({ path: 'sellerId', select: 'displayName' })
-        .populate({ path: 'buyerId', select: 'displayName' }) 
-        .populate({path: 'messages.senderId', select: 'displayName'})
-      }
-  
-      //return chat.toObject(); // Convert the Mongoose document to a plain JavaScript object
-      // Construct the message DTO for the system message
-      const createMessageDTO: CreateMessageDTO = {
-        senderId: SYSTEM_USER_ID,
-        content: 'Please rate your experience. Click here to rate.', // Customize your message content as needed
-        sentAt: new Date(), // Optional, can be omitted to use the default server timestamp
-      };
-
-      // Call addMessageToChat to add the system message to the chat
-      const updatedChat = await this.addMessageToChat(chat._id, createMessageDTO);
-
-      return updatedChat;
-    } catch (error) {
-      console.error('Error creating system chat:', error);
-      throw new HttpException('Error creating system chat', HttpStatus.INTERNAL_SERVER_ERROR);
-    }
-  }*/
   
   async addMessageToChat(chatId: Types.ObjectId, createMessageDTO: CreateMessageDTO): Promise<Chat> {
     try {
@@ -165,10 +121,6 @@ export class ChatService {
       }
 
       // Send a push notification to each of the recipient's devices
-      /*for (const pushToken of pushTokens) {
-        await this.sendPushNotification(pushToken, message.content, chatId.toString());
-      }*/
-
       // De-deup the array of pushTokens 
       const uniquePushTokens = [...new Set(pushTokens)];
 
@@ -179,7 +131,8 @@ export class ChatService {
 
       return chat;
     } catch (error) {
-      throw new HttpException('Error adding message to chat', HttpStatus.INTERNAL_SERVER_ERROR);
+      this.loggingService.error(`Error creating chat for chatId ${chatId}`, error);
+      throw new InternalServerErrorException('Error adding message to chat');
     }
   }
 
@@ -194,8 +147,8 @@ export class ChatService {
         }
       );
     } catch (error) {
-      console.error('Error marking messages as read:', error);
-      throw new HttpException('Error marking messages as read', HttpStatus.INTERNAL_SERVER_ERROR);
+      this.loggingService.error(`Error marking messages as read for chatId ${chatId} and userId ${userId}`, error);
+      throw new InternalServerErrorException('Error marking messages as read');
     }
   }
 
@@ -228,7 +181,7 @@ export class ChatService {
   
       return chatsWithUnread;
     } catch (error) {
-      console.error(`Error getting chats for user ${userId}`, error);
+      this.loggingService.error(`Error getting chats for user ${userId}`, error);
       if (error.name === 'NotFoundException') {
         throw error;
       } else if (error.name === 'ValidationError') {
@@ -272,7 +225,7 @@ export class ChatService {
         throw new NotFoundException(`Chat not found`);
       }
     } catch (error) {
-      console.error(`Error deleting chat ${chatId}`, error);
+      this.loggingService.error(`Error deleting chat ${chatId}`, error);
       if (error.name === 'NotFoundException') {
         throw error;
       } else if (error.name === 'ValidationError') {
@@ -314,7 +267,7 @@ export class ChatService {
   
     return buyersInfo;
     } catch (error) {
-      console.error(`Error fetching buyer details for listing ${listingId} and seller ${sellerId}`, error);
+      this.loggingService.error(`Error fetching buyer details for listing ${listingId} and seller ${sellerId}`, error);
       if (error.name === 'NotFoundException' || error.name === 'BadRequestException') {
         throw error;
       } else {
@@ -331,52 +284,59 @@ export class ChatService {
       }
       return notificationsCounter.unreadNotificationCount;
     } catch (error) {
-      console.error('Error getting notification count:', error);
+      this.loggingService.error(`Error getting notification count for user ${userId}`, error);
       return 0;
     }
   }
 
   async updateNotificationCount(userId: string, count: number): Promise<void> {
-    const notificationsCounter = await this.notificationsCounterModel.findOne({ userId: userId }).exec();
-  
-    if (notificationsCounter) {
-      // Document exists, update it
-      await this.notificationsCounterModel.findByIdAndUpdate(notificationsCounter._id, { $set: { unreadNotificationCount: count } }).exec();
-    } else {
-      // Document doesn't exist, create a new one
-      const newCounter = new this.notificationsCounterModel({
-        userId: userId,
-        unreadNotificationCount: count
-      });
-      await newCounter.save();
+    try {
+      const notificationsCounter = await this.notificationsCounterModel.findOne({ userId: userId }).exec();
+    
+      if (notificationsCounter) {
+        // Document exists, update it
+        await this.notificationsCounterModel.findByIdAndUpdate(notificationsCounter._id, { $set: { unreadNotificationCount: count } }).exec();
+      } else {
+        // Document doesn't exist, create a new one
+        const newCounter = new this.notificationsCounterModel({
+          userId: userId,
+          unreadNotificationCount: count
+        });
+        await newCounter.save();
+      }
+    } catch (error) {
+      this.loggingService.error(`Error updating notification count for user ${userId}`, error);
+      //throw new InternalServerErrorException('Error updating notification count');
     }
-  
-   // console.log(`Notification count updated for user ${userId} to ${count}`);
   }
 
   async sendPushNotification(pushToken: string, messageContent: string, chatId: string) {
+    try {
+      const notification = {
+        to: pushToken,
+        sound: 'default',
+        title: 'New Message',
+        contentAvailable: true, // For iOS
+        priority: 'high', // For Android
+        body: messageContent,
+        data: { 
+          type: 'NEW_MESSAGE',
+          chatId: chatId,
+          message: messageContent,
+        },
+      };
 
-    const notification = {
-      to: pushToken,
-      sound: 'default',
-      title: 'New Message',
-      //contentAvailable: true, // For iOS
-      //priority: 'high', // For Android
-      body: messageContent,
-      data: { 
-        type: 'NEW_MESSAGE',
-        chatId: chatId,
-        message: messageContent,
-      },
-    };
-
-    await axios.post('https://exp.host/--/api/v2/push/send', notification, {
-      headers: {
-        'host': 'exp.host',
-        'accept': 'application/json',
-        'accept-encoding': 'gzip, deflate',
-        'content-type': 'application/json',
-      },
-    });
-  }
+      await axios.post('https://exp.host/--/api/v2/push/send', notification, {
+        headers: {
+          'host': 'exp.host',
+          'accept': 'application/json',
+          'accept-encoding': 'gzip, deflate',
+          'content-type': 'application/json',
+        },
+      });
+    } catch (error) {
+      this.loggingService.error(`Error sending push notification for pushToken ${pushToken} and chatId ${chatId}`, error);
+      //throw new InternalServerErrorException('Error updating notification count');
+    }
+  } 
 }

@@ -8,9 +8,12 @@ import { ChatGateway } from './chat.gateway';
 import { UserSchema } from 'src/user/schemas/user.schema';
 import { NotificationsCounterSchema } from './schemas/notifications-counter.schema';
 import { UserProfile } from 'src/userProfile/schemas/userProfile.schema';
+import { CommonModule } from '../common/common.module'; 
+
 
 @Module({
   imports: [
+    CommonModule,
     MongooseModule.forFeature([
       { name: 'Message', schema: MessageSchema },
       { name: 'Chat', schema: ChatSchema },

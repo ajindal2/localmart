@@ -109,18 +109,18 @@ import { Chat } from './schemas/chat.schema';
     }*/
 
     afterInit(server: Server) {
-        this.logger.log('Init');
+        //this.logger.log('Init');
         //console.log('Init');
     }
 
     handleConnection(client: Socket, ...args: any[]) {
-        this.logger.log(`Client connected: ${client.id}`);
+        //this.logger.log(`Client connected: ${client.id}`);
         //console.log(`Client connected: ${client.id}`);
         //client.join(client.handshake.query['chatId']);
     }
 
     handleDisconnect(client: Socket) {
-        this.logger.log(`Client disconnected: ${client.id}`);
+        //this.logger.log(`Client disconnected: ${client.id}`);
         //console.log(`Client disconnected: ${client.id}`);
     }
 }
