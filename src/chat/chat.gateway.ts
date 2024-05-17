@@ -17,6 +17,7 @@ import { validate } from 'class-validator';
 import { CreateChatDTO } from './dtos/create-chat.dto';
 import { Types } from 'mongoose';
 import { Chat } from './schemas/chat.schema';
+import { LoggingService } from '../common/services/logging.service';
 
 
 @WebSocketGateway({
@@ -25,29 +26,13 @@ import { Chat } from './schemas/chat.schema';
     },
   })
   export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect {
-    constructor(private readonly chatService: ChatService) {}
+    constructor(
+        private readonly chatService: ChatService, 
+        private readonly loggingService: LoggingService) {
+            this.loggingService.setContext(ChatGateway.name);
+        }
 
     @WebSocketServer() server: Server;
-    private logger: Logger = new Logger('ChatGateway');
-
-    /*@SubscribeMessage('createChat')
-    async handleCreateChatEvent(@MessageBody() createChatDTO: CreateChatDTO, @ConnectedSocket() client: Socket): Promise<void> {
-        try {
-            const errors = await validate(createChatDTO);
-            if (errors.length > 0) {
-                client.emit('error', 'Invalid message payload');
-                return;
-            }
-            const chat = await this.chatService.createChat(createChatDTO);
-            client.emit('chatCreated', chat); // Emit the created chat object back to the client
-            //callback({ success: true, chat });
-            client.join(chat._id.toString()); // Join a room with the chat's ID
-        } catch (error) {
-            console.error('Error creating chat', error);
-            client.emit('error', 'Error creating chat');
-            //callback({ error: 'Error creating chat' }); // Send back error
-        }
-    }*/
 
     //@UseGuards(WsJwtGuard) 
     @SubscribeMessage('chat')
@@ -67,9 +52,8 @@ import { Chat } from './schemas/chat.schema';
                 senderId: createMessageDTO.senderId 
             };
             this.server.to(chat._id.toString()).emit('messageRcvd', messageToSend);
-            //this.server.to(chat._id.toString()).emit('messageRcvd', chat.messages);
         } catch (error) {
-            console.error('Error sending message', error);
+            this.loggingService.error(`Error sending message for chatId ${chatId}`, error);
             client.emit('error', 'Error sending message');
         }
     }
@@ -114,14 +98,12 @@ import { Chat } from './schemas/chat.schema';
     }
 
     handleConnection(client: Socket, ...args: any[]) {
-        //this.logger.log(`Client connected: ${client.id}`);
-        //console.log(`Client connected: ${client.id}`);
+        this.loggingService.log(`Client connected: ${client.id}}`);
         //client.join(client.handshake.query['chatId']);
     }
 
     handleDisconnect(client: Socket) {
-        //this.logger.log(`Client disconnected: ${client.id}`);
-        //console.log(`Client disconnected: ${client.id}`);
+        this.loggingService.log(`Client disconnected: ${client.id}`);
     }
 }
 

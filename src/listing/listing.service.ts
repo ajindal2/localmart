@@ -6,16 +6,19 @@ import { CreateListingDTO } from './dtos/create-listing.dto';
 import { QueryListingDTO } from './dtos/query-listing.dto';
 import { Seller } from 'src/seller/schemas/seller.schema';
 import { LocationDTO } from 'src/location/dtos/location.dto';
-import axios from 'axios';
 import { UpdateListingDTO } from './dtos/update-listing.dto';
-import { CategoryDTO } from './dtos/category.dto';
+import { LoggingService } from 'src/common/services/logging.service';
+
 
 @Injectable()
 export class ListingService {
   constructor(
     @InjectModel(Listing.name) private readonly listingModel: Model<Listing>,
-    @InjectModel(Seller.name) private readonly sellerModel: Model<Seller>
-    ) { }
+    @InjectModel(Seller.name) private readonly sellerModel: Model<Seller>,
+    private readonly loggingService: LoggingService
+    ) { 
+      this.loggingService.setContext(ListingService.name);
+    }
 
     async getFilteredListings(query: QueryListingDTO, paginationOptions: { page: number; limit: number }): Promise<PaginatedListingsResult>  {
       const { title } = query;
@@ -88,7 +91,7 @@ export class ListingService {
           },
         };
        } catch (error) {
-        console.error('Error fetching listings:', error);
+        this.loggingService.error(`Error fetching listing`, error);
         if (error.name === 'NotFoundException') {
           throw error;
         } else if (error.name === 'ValidationError') {
@@ -127,7 +130,7 @@ export class ListingService {
           },
         };
       } catch (error) {
-        console.error('Error fetching listings:', error);
+        this.loggingService.error(`Error fetching listings`, error);
         if (error.name === 'NotFoundException') {
           throw error;
         } else if (error.name === 'ValidationError') {
@@ -151,7 +154,7 @@ export class ListingService {
     }
     return listings;
   } catch (error) {
-      console.error(`Error fetching listings for userId ${userId}`, error);
+      this.loggingService.error(`Error fetching listings by user ${userId}`, error);
       if (error.name === 'NotFoundException') {
         throw error;
       } else if (error.name === 'ValidationError') {
@@ -166,12 +169,11 @@ export class ListingService {
     try {
     const listing = await this.listingModel.findById(id);
     if (!listing) {
-      console.error('ListingId not found: ', id);
       throw new NotFoundException('Listing not found');
     }
     return listing;
     } catch (error) {
-      console.error(`Error getting listing from id ${id}`, error);
+      this.loggingService.error(`Error getting listing from id ${id}`, error);
       if (error.name === 'NotFoundException') {
         throw error;
       } else if (error.name === 'ValidationError') {
@@ -188,7 +190,7 @@ export class ListingService {
       // Find the listing by ID
       const listing = await this.listingModel.findById(listingId);
       if (!listing) {
-        console.error('ListingId not found: ', listingId);
+        //console.error('ListingId not found: ', listingId);
         throw new NotFoundException('Listing not found');
       }
     
@@ -250,14 +252,15 @@ export class ListingService {
   }
 
   async deleteListing(listingId: string): Promise<void> {
+    listingId = '123';
     try {
       const result = await this.listingModel.deleteOne({ _id: listingId }).exec();
       if (result.deletedCount === 0) {
-        console.error(`Listing with ID "${listingId}" not found`);
+        //console.error(`Listing with ID "${listingId}" not found`);
         throw new NotFoundException(`Listing not found`);
       }
     } catch (error) {
-      console.error(`Error deleting listing ${listingId}`, error);
+      this.loggingService.error(`Error deleting listing ${listingId}`, error);
       if (error.name === 'NotFoundException') {
         throw error;
       } else if (error.name === 'ValidationError') {

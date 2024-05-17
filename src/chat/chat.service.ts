@@ -154,7 +154,7 @@ export class ChatService {
 
   async getChats(userId: string): Promise<Chat[]> {
     try {
-      /*const chats = await this.chatModel.find({
+      const chats = await this.chatModel.find({
         $or: [{ sellerId: userId }, { buyerId: userId }],
       })
       .populate('listingId')
@@ -179,8 +179,7 @@ export class ChatService {
         };
       });
   
-      return chatsWithUnread;*/
-      throw new Error('Test logging');
+      return chatsWithUnread;
     } catch (error) {
       this.loggingService.error(`Error getting chats for user ${userId}`, error);
       if (error.name === 'NotFoundException') {
