@@ -252,7 +252,8 @@ export class ListingService {
   }
 
   async deleteListing(listingId: string): Promise<void> {
-    listingId = '123';
+    listingId = '507f1f77bcf86cd799439011';  
+
     try {
       const result = await this.listingModel.deleteOne({ _id: listingId }).exec();
       if (result.deletedCount === 0) {
