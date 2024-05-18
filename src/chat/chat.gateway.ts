@@ -98,12 +98,12 @@ import { LoggingService } from '../common/services/logging.service';
     }
 
     handleConnection(client: Socket, ...args: any[]) {
-        this.loggingService.log(`Client connected: ${client.id}}`);
+       // this.loggingService.log(`Client connected: ${client.id}}`);
         //client.join(client.handshake.query['chatId']);
     }
 
     handleDisconnect(client: Socket) {
-        this.loggingService.log(`Client disconnected: ${client.id}`);
+        //this.loggingService.log(`Client disconnected: ${client.id}`);
     }
 }
 
