@@ -6,7 +6,6 @@ import { CreateRatingDTO } from './dtos/create-rating.dto';
 import { Seller } from 'src/seller/schemas/seller.schema';
 import { UserProfile } from 'src/userProfile/schemas/userProfile.schema';
 import { SavedListing } from 'src/saved-listing/schemas/saved-listing.schema';
-import { LoggingService } from 'src/common/services/logging.service';
 
 @Injectable()
 export class RatingService {
