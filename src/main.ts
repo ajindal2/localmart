@@ -2,7 +2,7 @@ import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import * as express from 'express';
 import * as dotenv from 'dotenv';
-import { CorrelationIdMiddleware } from './common/middleware/correlation-id.middleware';
+import { CorrelationIdMiddleware } from './correlation-id.middleware';
 
 
 async function bootstrap() {

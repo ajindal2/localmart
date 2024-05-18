@@ -8,16 +8,11 @@ import {
     ConnectedSocket,
     MessageBody,
 } from '@nestjs/websockets';
-import { UseGuards } from '@nestjs/common';
 import { Server, Socket } from 'socket.io';
-import { Logger } from '@nestjs/common';
 import { ChatService } from './chat.service';
 import { CreateMessageDTO } from './dtos/create-message.dto';
 import { validate } from 'class-validator';
-import { CreateChatDTO } from './dtos/create-chat.dto';
 import { Types } from 'mongoose';
-import { Chat } from './schemas/chat.schema';
-import { LoggingService } from '../common/services/logging.service';
 
 
 @WebSocketGateway({
@@ -27,10 +22,7 @@ import { LoggingService } from '../common/services/logging.service';
   })
   export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect {
     constructor(
-        private readonly chatService: ChatService, 
-        private readonly loggingService: LoggingService) {
-            this.loggingService.setContext(ChatGateway.name);
-        }
+        private readonly chatService: ChatService) {}
 
     @WebSocketServer() server: Server;
 
@@ -53,7 +45,7 @@ import { LoggingService } from '../common/services/logging.service';
             };
             this.server.to(chat._id.toString()).emit('messageRcvd', messageToSend);
         } catch (error) {
-            this.loggingService.error(`Error sending message for chatId ${chatId}`, error);
+            //this.loggingService.error(`Error sending message for chatId ${chatId}`, error);
             client.emit('error', 'Error sending message');
         }
     }
