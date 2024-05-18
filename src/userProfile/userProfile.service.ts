@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable, InternalServerErrorException, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, InternalServerErrorException, Logger, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import { UserProfile } from './schemas/userProfile.schema';
@@ -6,16 +6,12 @@ import { CreateUserProfileDTO } from './dtos/create-userProfile.dto';
 import { UpdateUserProfileDTO } from './dtos/update-userProfile.dto';
 import mongoose from 'mongoose';
 import { LocationDTO } from 'src/location/dtos/location.dto';
-import { LoggingService } from 'src/common/services/logging.service';
 
 
 @Injectable()
 export class UserProfileService {
-  constructor(@InjectModel(UserProfile.name) private readonly userProfileModel: Model<UserProfile>,
-  private readonly loggingService: LoggingService
-        ) { 
-          this.loggingService.setContext(UserProfileService.name);
-        }
+  constructor(@InjectModel(UserProfile.name) private readonly userProfileModel: Model<UserProfile>) { }
+  private logger: Logger = new Logger('UserProfileService');
 
   async createUserProfile(createUserProfileDto: CreateUserProfileDTO): Promise<UserProfile> {
     const newUserProfile = await this.userProfileModel.create(createUserProfileDto);
@@ -27,17 +23,17 @@ export class UserProfileService {
       const objectId = new mongoose.Types.ObjectId(userId);
       const userProfile = await this.userProfileModel.findOne({ userId: objectId });
       if (!userProfile) {
-        throw new NotFoundException(`UserProfile with user ID ${userId} not found`);
+        throw new NotFoundException(`UserProfile not found`);
       }
       return userProfile;
     } catch (error) {
-      console.error(`Error fetching user profile for userId ${userId}`, error);
+      this.logger.error(`Error fetching user profile for userId ${userId}`, error);
       if (error.name === 'NotFoundException') {
         throw error;
       } else if (error.name === 'ValidationError') {
-        throw new BadRequestException('DB Validation failed');
+        throw new BadRequestException('DB Validation failed when fetching user profile');
       } else {
-        throw new InternalServerErrorException('An unexpected error occurred');
+        throw new InternalServerErrorException('An unexpected error occurred when fetching user profile');
       }
     }
   }
@@ -47,19 +43,18 @@ export class UserProfileService {
       const objectId = new mongoose.Types.ObjectId(userId);
       const userProfile = await this.userProfileModel.findOne({ userId: objectId  });
       if (!userProfile) {
-        console.error(`User profile not found to fetch user location for ${userId}`);
         // Impotant to thro thsi exception since it is a 404 and we are checking for 404 in the FE
         throw new NotFoundException('User profile not found');
       }
       return userProfile.location || null;
     } catch (error) {
-      console.error(`Error fetching user location for userId ${userId}`, error);
+      this.logger.error(`Error fetching user location for userId ${userId}`, error);
       if (error.name === 'NotFoundException') {
         throw error;
       } else if (error.name === 'ValidationError') {
-        throw new BadRequestException('DB Validation failed');
+        throw new BadRequestException('DB Validation failed when fetching user location');
       } else {
-        throw new InternalServerErrorException('An unexpected error occurred');
+        throw new InternalServerErrorException('An unexpected error occurred when fetching user location');
       }
     }
   }
@@ -94,7 +89,42 @@ export class UserProfileService {
       }
       return await userProfile.save();
     } catch (error) {
-      console.error(`Error creating/ updating user profile for userId ${userId}`, error);
+      this.logger.error(`Error creating/ updating user profile for userId ${userId}`, error);
+      if (error.name === 'ValidationError') {
+        throw new BadRequestException('DB Validation failed');
+      } else {
+        throw new InternalServerErrorException('An unexpected error occurred');
+      }
+    }
+  }
+
+  async createOrUpdateProfileWithImage(userId: string, imageUrl: string): Promise<UserProfile> {
+    try {
+      const objectId = new mongoose.Types.ObjectId(userId);
+      let userProfile = await this.userProfileModel.findOne({ userId: objectId });
+
+      if (!userProfile) {
+          // Define newUserProfileData with the UserProfile type
+          const newUserProfileData: Partial<UserProfile> = {
+              userId: new Types.ObjectId(userId),
+          };
+
+          if (imageUrl) {
+              newUserProfileData.profilePicture = imageUrl; // Only set if imageUrl is provided
+          }
+          
+          const newUserProfile = new this.userProfileModel(newUserProfileData);
+          userProfile = await newUserProfile.save();
+      } else {
+        // If the user profile exists, update it
+        if(imageUrl) {
+          userProfile.profilePicture = imageUrl;
+        }
+        userProfile = await userProfile.save();
+      }
+      return userProfile;
+    } catch (error) {
+      this.logger.error(`Error creating/ updating user profile with image for userId ${userId} and imageUrl ${imageUrl}`, error);
       if (error.name === 'ValidationError') {
         throw new BadRequestException('DB Validation failed');
       } else {
@@ -119,32 +149,5 @@ export class UserProfileService {
     }
   
     return location;
-  }
-
-  async createOrUpdateProfileWithImage(userId: string, imageUrl: string): Promise<UserProfile> {
-    const objectId = new mongoose.Types.ObjectId(userId);
-    let userProfile = await this.userProfileModel.findOne({ userId: objectId });
-
-    if (!userProfile) {
-        // Define newUserProfileData with the UserProfile type
-        const newUserProfileData: Partial<UserProfile> = {
-            userId: new Types.ObjectId(userId),
-        };
-
-        if (imageUrl) {
-            newUserProfileData.profilePicture = imageUrl; // Only set if imageUrl is provided
-        }
-        
-        const newUserProfile = new this.userProfileModel(newUserProfileData);
-        userProfile = await newUserProfile.save();
-    } else {
-      // If the user profile exists, update it
-      if(imageUrl) {
-        userProfile.profilePicture = imageUrl;
-    }
-    userProfile = await userProfile.save();
-  }
-
-    return userProfile;
   }
 }

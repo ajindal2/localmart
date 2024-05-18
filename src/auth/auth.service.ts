@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable, InternalServerErrorException, UnauthorizedException } from '@nestjs/common';
+import { BadRequestException, Injectable, InternalServerErrorException, Logger, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import { RefreshToken } from './schemas/refresh-token.schema';
@@ -19,6 +19,8 @@ export class AuthService {
     private mailerService: MailerService
   ) {}
 
+  private logger: Logger = new Logger('AuthService');
+
   async validateUser(email: string, password: string): Promise<any> {
     const user = await this.userService.findByEmail(email);
     if(user) {
@@ -31,7 +33,7 @@ export class AuthService {
       }
     }
     return null;
-    }
+  }
 
   async login(user: any) {
     const payload = { email: user.emailAddress, userId: user._id };
@@ -53,7 +55,7 @@ export class AuthService {
       
       if (!user) {
         // Log the event and silently fail to prevent email enumeration
-        console.error(`Forgot password attempted for non-existent email: ${email}`);
+        this.logger.error(`Forgot password attempted for non-existent email: ${email}`);
         return;
       }
 
@@ -71,10 +73,11 @@ export class AuthService {
           password: newPassword,
         },
       }).catch((mailError) => {
-        console.error("Error sending email: ", mailError);
+        this.logger.error(`Error sending forgot password email to ${email}`, mailError);
       });
     } catch (error) {
-      console.error("Error in Mail service: ", error);
+      this.logger.error(`Error sending forgot password email to ${email}`, error);
+      throw new InternalServerErrorException('An unexpected error occurred');
     }
   }
   
@@ -96,9 +99,11 @@ export class AuthService {
         }] : [],
       };
 
-      await this.mailerService.sendMail(mailOptions);
+      await this.mailerService.sendMail(mailOptions).catch((mailError) => {
+        this.logger.error(`Error sending contact us email from ${email}, subject ${subject}, message ${message}`, mailError);
+      });
     } catch (error) {
-      console.error(`Error in Mail service for email ${email}: `, error);
+      this.logger.error(`Error sending contact us email from ${email}, subject ${subject}, message ${message}`, error);
       if (error.name === 'ValidationError') {
         throw new BadRequestException('DB Validation failed');
       } else {
@@ -117,7 +122,6 @@ export class AuthService {
 
   private async createRefreshToken(user: any): Promise<string> {
     try {
-      
       // Set the expiry to 30 days.
       const refreshToken = this.jwtService.sign({ userId: user._id }, { expiresIn: '30d' });
       const expiryDate = new Date();
@@ -134,8 +138,8 @@ export class AuthService {
 
       return refreshToken;
     } catch (error) {
-      console.error('Error in createRefreshToken:', error);
-      throw error; // Re-throw the error so it can be caught and handled by the calling function
+      this.logger.error(`Error in createRefreshToken for user ${user}`, error);
+      throw new InternalServerErrorException('An unexpected error occurred');
     }
   }
 
@@ -178,11 +182,11 @@ export class AuthService {
 
       return user;
     } catch (error) {
-      console.error('Error in validateRefreshToken:', error);
+      this.logger.error(`Error in validateRefreshToken for token ${token}`, error);
       if (error.name === 'UnauthorizedException') {
         throw error;
       } else {
-        throw error; // Re-throw the error so it can be caught and handled by the calling function
+        throw new InternalServerErrorException('An unexpected error occurred');
       }
     }
   }
@@ -212,23 +216,27 @@ export class AuthService {
           refresh_token: newRefreshToken,
       };
     } catch (error) {
-      console.error('Error in refreshToken:', error);
+      this.logger.error(`Error in refreshToken for token ${token}`, error);
       if (error.name === 'UnauthorizedException') {
         throw error;
       } else {
-        throw error; // Re-throw the error so it can be caught and handled by the calling function
+        throw new InternalServerErrorException('An unexpected error occurred');
       }
     }
   }
 
   async invalidateRefreshToken(token: string, userId: string): Promise<void> {
-    const result = await this.refreshTokenModel.deleteOne({
-      token: token,
-      userId: new Types.ObjectId(userId)
-    });
+    try {
+      const result = await this.refreshTokenModel.deleteOne({
+        token: token,
+        userId: new Types.ObjectId(userId)
+      });
 
-    if (result.deletedCount === 0) {
-      console.error(`Could not invalidate Refresh token ${token}`);
+      if (result.deletedCount === 0) {
+        this.logger.error(`Could not invalidate Refresh token ${token} for user ${userId}`);
+      }
+    } catch (error) {
+      this.logger.error(`Could not invalidate Refresh token ${token} for user ${userId}`, error);
     }
   }
 

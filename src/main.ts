@@ -2,7 +2,7 @@ import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import * as express from 'express';
 import * as dotenv from 'dotenv';
-import { CorrelationIdMiddleware } from './correlation-id.middleware';
+//import { CorrelationIdMiddleware } from './correlation-id.middleware';
 
 
 async function bootstrap() {
@@ -11,7 +11,7 @@ async function bootstrap() {
   app.enableCors();
   app.use('/uploads', express.static('uploads'));
   //app.useGlobalFilters(new NotFoundExceptionFilter()); // Apply globally
-  app.use(new CorrelationIdMiddleware().use);
+  //app.use(new CorrelationIdMiddleware().use);
   const port = process.env.PORT || 3000;
   await app.listen(port);
 }

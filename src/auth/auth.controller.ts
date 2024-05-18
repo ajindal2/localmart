@@ -1,4 +1,4 @@
-import { Controller, Post, Body, UseGuards, UsePipes, ValidationPipe, BadRequestException, Request, UnauthorizedException, HttpCode, UseInterceptors, UploadedFile, HttpStatus, Req } from '@nestjs/common';
+import { Controller, Post, Body, UseGuards, UsePipes, ValidationPipe, BadRequestException, Request, UnauthorizedException, HttpCode, UseInterceptors, UploadedFile, HttpStatus, Req, Logger } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { UserService } from 'src/user/user.service';
 import { CreateUserDTO } from 'src/user/dtos/create-user.dto';
@@ -14,6 +14,7 @@ import { diskStorage } from 'multer';
 @Controller('auth')
 export class AuthController {
   constructor(private authService: AuthService, private userService: UserService) {}
+  private logger: Logger = new Logger('AuthController');
 
   @UseGuards(LocalAuthGuard)
   @Post('/login')
@@ -37,7 +38,7 @@ export class AuthController {
       const user = await this.userService.createUser(createUserDTO);
       return user;
     } catch (error) {
-      console.error('Error during registration', error);
+      this.logger.error('Error during registration', error);
       if (error.name === 'ConflictException') {
         throw error;
       } else {

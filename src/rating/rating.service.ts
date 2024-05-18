@@ -1,4 +1,4 @@
-import { BadRequestException, ConflictException, Injectable, InternalServerErrorException, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ConflictException, Injectable, InternalServerErrorException, Logger, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { Rating } from './schemas/rating.schema';
@@ -13,11 +13,9 @@ export class RatingService {
   constructor(
       @InjectModel(Rating.name) private readonly ratingModel: Model<Rating>,
       @InjectModel(Seller.name) private readonly sellerModel: Model<Seller>,
-      @InjectModel(UserProfile.name) private readonly userProfileModel: Model<UserProfile>,
-      private readonly loggingService: LoggingService
-      ) { 
-        this.loggingService.setContext(RatingService.name);
-      }
+      @InjectModel(UserProfile.name) private readonly userProfileModel: Model<UserProfile>) { }
+
+  private logger: Logger = new Logger('RatingService');
 
   async createRating(createRatingDTO: CreateRatingDTO): Promise<Rating> {
     try {
@@ -33,7 +31,7 @@ export class RatingService {
       return savedRating;
 
     } catch (error) {
-      this.loggingService.error(`Error creating${createRatingDTO.role} rating for listing ${createRatingDTO.listingId}, ratedBy ${createRatingDTO.ratedBy}, ratedUser ${createRatingDTO.ratedUser}`, error);
+      this.logger.error(`Error creating${createRatingDTO.role} rating for listing ${createRatingDTO.listingId}, ratedBy ${createRatingDTO.ratedBy}, ratedUser ${createRatingDTO.ratedUser}`, error);
       if (error.code === 11000) {
         // Handle duplicate key error (e.g., if you have unique constraints in your schema)
         throw new ConflictException('Duplicate entry for rating.');
@@ -61,7 +59,7 @@ export class RatingService {
       }).exec();
       return !!rating; // Convert the result to a boolean
     } catch (error) {
-      this.loggingService.error(`Error checking rating exists for listing ${listingId}, ratedBy ${ratedBy}, ratedUser ${ratedUser}`, error);
+      this.logger.error(`Error checking rating exists for listing ${listingId}, ratedBy ${ratedBy}, ratedUser ${ratedUser}`, error);
       if (error.name === 'ValidationError') {
         throw new BadRequestException('Validation failed for rating existence check');
       } else {
@@ -118,7 +116,7 @@ export class RatingService {
 
       return { averageRating, ratingsWithProfile };
     } catch (error) {
-        this.loggingService.error(`Error fetching ratings for userId ${userId}`, error)
+        this.logger.error(`Error fetching ratings for userId ${userId}`, error)
         if (error.name === 'ValidationError') {
           throw new BadRequestException('Database validation failed in fetching ratings with profiles.');
         } else {
@@ -208,7 +206,7 @@ export class RatingService {
 
       return { averageRating, ratingsWithProfile, sellerProfile, tagsSummary };
     } catch (error) {
-      this.loggingService.error(`Error fetching ratings with profiles for sellerId ${sellerId}`, error)
+      this.logger.error(`Error fetching ratings with profiles for sellerId ${sellerId}`, error)
       if (error.name === 'NotFoundException') {
         throw error;
       } else if (error.name === 'ValidationError') {

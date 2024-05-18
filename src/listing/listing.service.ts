@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable, InternalServerErrorException, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, InternalServerErrorException, Logger, NotFoundException } from '@nestjs/common';
 import mongoose, { Model } from 'mongoose';
 import { InjectModel } from '@nestjs/mongoose';
 import { Listing } from './schemas/listing.schema';
@@ -7,18 +7,14 @@ import { QueryListingDTO } from './dtos/query-listing.dto';
 import { Seller } from 'src/seller/schemas/seller.schema';
 import { LocationDTO } from 'src/location/dtos/location.dto';
 import { UpdateListingDTO } from './dtos/update-listing.dto';
-import { LoggingService } from 'src/common/services/logging.service';
 
 
 @Injectable()
 export class ListingService {
   constructor(
     @InjectModel(Listing.name) private readonly listingModel: Model<Listing>,
-    @InjectModel(Seller.name) private readonly sellerModel: Model<Seller>,
-    private readonly loggingService: LoggingService
-    ) { 
-      this.loggingService.setContext(ListingService.name);
-    }
+    @InjectModel(Seller.name) private readonly sellerModel: Model<Seller>) { }
+    private logger: Logger = new Logger('ListingService');
 
     async getFilteredListings(query: QueryListingDTO, paginationOptions: { page: number; limit: number }): Promise<PaginatedListingsResult>  {
       const { title } = query;
@@ -91,7 +87,7 @@ export class ListingService {
           },
         };
        } catch (error) {
-        this.loggingService.error(`Error fetching listing`, error);
+        this.logger.error(`Error fetching listing`, error);
         if (error.name === 'NotFoundException') {
           throw error;
         } else if (error.name === 'ValidationError') {
@@ -130,7 +126,7 @@ export class ListingService {
           },
         };
       } catch (error) {
-        this.loggingService.error(`Error fetching listings`, error);
+        this.logger.error(`Error fetching listings`, error);
         if (error.name === 'NotFoundException') {
           throw error;
         } else if (error.name === 'ValidationError') {
@@ -154,7 +150,7 @@ export class ListingService {
     }
     return listings;
   } catch (error) {
-      this.loggingService.error(`Error fetching listings by user ${userId}`, error);
+      this.logger.error(`Error fetching listings by user ${userId}`, error);
       if (error.name === 'NotFoundException') {
         throw error;
       } else if (error.name === 'ValidationError') {
@@ -173,7 +169,7 @@ export class ListingService {
     }
     return listing;
     } catch (error) {
-      this.loggingService.error(`Error getting listing from id ${id}`, error);
+      this.logger.error(`Error getting listing from id ${id}`, error);
       if (error.name === 'NotFoundException') {
         throw error;
       } else if (error.name === 'ValidationError') {
@@ -199,7 +195,7 @@ export class ListingService {
         try {
           locationData = JSON.parse(updateListingDto.location);
         } catch (error) {
-          this.loggingService.error(`Invalid location data ${updateListingDto.location} when updating listing ${listingId} `, error);
+          this.logger.error(`Invalid location data ${updateListingDto.location} when updating listing ${listingId} `, error);
           throw new BadRequestException('Invalid location data when updating listing');
         }
       } else {
@@ -230,7 +226,7 @@ export class ListingService {
             subCategories: category.subCategories || []
           }
         } catch (error) {
-          this.loggingService.error(`Invalid JSON format for category for update listing ${listingId}`, error);
+          this.logger.error(`Invalid JSON format for category for update listing ${listingId}`, error);
           throw new BadRequestException('Invalid JSON format for category.');
         }
       }
@@ -238,7 +234,7 @@ export class ListingService {
       // Save the updated listing
       return await listing.save();
     } catch (error) {
-      this.loggingService.error(`Error updating listing ${listingId}`, error);
+      this.logger.error(`Error updating listing ${listingId}`, error);
       if (error.name === 'NotFoundException') {
         throw error;
       } else if (error.name === 'BadRequestException') {
@@ -258,7 +254,7 @@ export class ListingService {
         throw new NotFoundException(`Listing not found`);
       }
     } catch (error) {
-      this.loggingService.error(`Error deleting listing ${listingId}`, error);
+      this.logger.error(`Error deleting listing ${listingId}`, error);
       if (error.name === 'NotFoundException') {
         throw error;
       } else if (error.name === 'ValidationError') {
@@ -279,7 +275,7 @@ export class ListingService {
       listing.state = newStatus;
       return await listing.save();
     } catch (error) {
-      this.loggingService.error(`Error marking listing as sold ${listingId}`, error);
+      this.logger.error(`Error marking listing as sold ${listingId}`, error);
       if (error.name === 'NotFoundException') {
         throw error;
       } else if (error.name === 'ValidationError') {
@@ -304,7 +300,7 @@ async createListing(userId: string, createListingDto: CreateListingDTO): Promise
       try {
         locationData = JSON.parse(createListingDto.location);
       } catch (error) {
-        this.loggingService.error(`Invalid location data ${createListingDto.location} when creating listing for user ${userId} `, error);
+        this.logger.error(`Invalid location data ${createListingDto.location} when creating listing for user ${userId} `, error);
         throw new BadRequestException('Invalid location data');
       }
     } else {
@@ -323,7 +319,7 @@ async createListing(userId: string, createListingDto: CreateListingDTO): Promise
       try {
         category = JSON.parse(category);
       } catch (error) {
-        this.loggingService.error(`Invalid JSON format for category when creating listing for user ${userId}`, error);
+        this.logger.error(`Invalid JSON format for category when creating listing for user ${userId}`, error);
         throw new BadRequestException('Invalid JSON format for category.');
       }
     }
@@ -364,7 +360,7 @@ async createListing(userId: string, createListingDto: CreateListingDTO): Promise
 
     return await newListing.save();
   } catch (error) {
-      this.loggingService.error(`Error creating listing for user ${userId}`, error);
+      this.logger.error(`Error creating listing for user ${userId}`, error);
       if (error.name === 'ValidationError') {
         throw new BadRequestException('DB validation failed');
       } else if (error.name === 'BadRequestException') {
@@ -389,7 +385,7 @@ async updateListingWithImageUrl(listingId: mongoose.Types.ObjectId, imageUrl: st
     listing.imageUrls.push(imageUrl);
     await listing.save();
   } catch (error) {
-    this.loggingService.error(`Error update listing with imageUrl ${imageUrl} for listing ${listingId}`, error);
+    this.logger.error(`Error update listing with imageUrl ${imageUrl} for listing ${listingId}`, error);
       if (error.name === 'NotFoundException') {
         throw error;
       } else if (error.name === 'ValidationError') {

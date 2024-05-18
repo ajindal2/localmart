@@ -13,6 +13,7 @@ import { ChatService } from './chat.service';
 import { CreateMessageDTO } from './dtos/create-message.dto';
 import { validate } from 'class-validator';
 import { Types } from 'mongoose';
+import { Logger } from '@nestjs/common';
 
 
 @WebSocketGateway({
@@ -25,6 +26,7 @@ import { Types } from 'mongoose';
         private readonly chatService: ChatService) {}
 
     @WebSocketServer() server: Server;
+    private logger: Logger = new Logger('ChatGateway');
 
     //@UseGuards(WsJwtGuard) 
     @SubscribeMessage('chat')
@@ -45,7 +47,7 @@ import { Types } from 'mongoose';
             };
             this.server.to(chat._id.toString()).emit('messageRcvd', messageToSend);
         } catch (error) {
-            //this.loggingService.error(`Error sending message for chatId ${chatId}`, error);
+            this.logger.error(`Error sending message for chatId ${chatId}`, error);
             client.emit('error', 'Error sending message');
         }
     }

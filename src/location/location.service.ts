@@ -1,16 +1,11 @@
-import { Injectable, Inject, BadRequestException, InternalServerErrorException } from '@nestjs/common';
+import { Injectable, Inject, BadRequestException, InternalServerErrorException, Logger } from '@nestjs/common';
 import { CacheService } from 'src/cache/cache.service';
-import { LoggingService } from 'src/common/services/logging.service';
 
 
 @Injectable()
 export class LocationService {
-    constructor(
-        private cacheService: CacheService,
-        private readonly loggingService: LoggingService) {
-            this.loggingService.setContext(LocationService.name);
-
-        }
+    constructor( private cacheService: CacheService) { }
+    private logger: Logger = new Logger('LocationService');
 
     // Get city/postal from lat/long
     async reverseGeocode(lat: number, lng: number): Promise<any> {
@@ -55,11 +50,11 @@ export class LocationService {
             } else {
                 // Cache the error state without specific "unknown" result
                 this.cacheService.set(cacheKey, { error: true, errorTimestamp: Date.now() }, 60000); // Cache this error state for shorter 1 minute.
-                this.loggingService.error(`Failed to reverse geocode coordinates ${lat} ${lng}`, '');
+                this.logger.error(`Failed to reverse geocode coordinates ${lat} ${lng}`, '');
                 throw new Error('Failed to fetch location');
             }
         } catch (error) {
-            this.loggingService.error(`Reverse geocoding error for ${lat} ${lng}`, error);
+            this.logger.error(`Reverse geocoding error for ${lat} ${lng}`, error);
             if (error.name === 'BadRequestException') {
                 throw error;
             } else {
@@ -98,11 +93,11 @@ export class LocationService {
                 throw new BadRequestException(`Postal code not found '${postalCode}'`);
             } else {
                 // Handle other API response statuses
-                this.loggingService.error(`Failed to validate and geocode postal code: ${postalCode}`, '');
+                this.logger.error(`Failed to validate and geocode postal code: ${postalCode}`, '');
                 throw new Error('Failed to fetch location.');
             }
         } catch (error) {
-            this.loggingService.error(`ValidateAndGeocodePostalCode error for postal code ${postalCode}`, error);
+            this.logger.error(`ValidateAndGeocodePostalCode error for postal code ${postalCode}`, error);
             if (error.name === 'BadRequestException') {
                 throw error;
             } else {

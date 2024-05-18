@@ -1,20 +1,18 @@
-import { BadRequestException, Injectable, InternalServerErrorException, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, InternalServerErrorException, Logger, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Seller } from './schemas/seller.schema';
 import { Model } from 'mongoose';
 import { CreateSellerDTO } from './dtos/create-seller.dto';
 import { UserProfile } from 'src/userProfile/schemas/userProfile.schema';
-import { LoggingService } from 'src/common/services/logging.service';
+
 
 @Injectable()
 export class SellerService {
     constructor(
         @InjectModel(Seller.name) private readonly sellerModel: Model<Seller>,
-        @InjectModel(UserProfile.name) private userProfileModel: Model<UserProfile>,
-        private readonly loggingService: LoggingService
-        ) { 
-          this.loggingService.setContext(SellerService.name);
-        }
+        @InjectModel(UserProfile.name) private userProfileModel: Model<UserProfile>, ) { }
+
+   private logger: Logger = new Logger('SellerService');
 
   async create(createSellerDto: CreateSellerDTO): Promise<Seller> {
     const newSeller = new this.sellerModel(createSellerDto);
@@ -62,7 +60,7 @@ export class SellerService {
         profilePicture
       };
     } catch (error) {
-      console.error(`Error fetching seller details for seller id: ${sellerId} ${error.message}`);
+      this.logger.error(`Error fetching seller details for seller id: ${sellerId} ${error.message}`);
       if (error.name === 'NotFoundException') {
         throw error;
       } else if (error.name === 'ValidationError') {
@@ -74,11 +72,16 @@ export class SellerService {
   }  
   
   async findByUserId(userId: string): Promise<Seller> {
-    let seller = await this.sellerModel.findOne({ userId });
-      if (!seller) {
-        throw new NotFoundException(`Seller with ID ${userId} not found`);
+    try {
+      let seller = await this.sellerModel.findOne({ userId });
+        if (!seller) {
+          throw new NotFoundException(`Seller with ID ${userId} not found`);
+      }
+      return seller;
+    } catch (error) {
+      this.logger.error(`Seller with ID ${userId} not found`);
+      throw new Error(`Seller with ID ${userId} not found`);
     }
-    return seller;
   }
 
   async deleteSeller(sellerId: string): Promise<{ deleted: boolean }> {
@@ -91,7 +94,8 @@ export class SellerService {
 
       return { deleted: true };
     } catch (error) {
-      throw new Error('Error occurred while deleting the seller');
+      this.logger.error(`Error occurred while deleting the seller ${sellerId}`);
+      throw new Error(`Error occurred while deleting the seller`);
     }
   }
 
@@ -121,7 +125,7 @@ export class SellerService {
       }
       return userProfileLocation;
     } catch (error) {
-      console.error(`Error fetching seller location for userId: ${userId}`, error);
+      this.logger.error(`Error fetching seller location for userId: ${userId}`, error);
       if (error.name === 'ValidationError') {
         throw new BadRequestException('DB Validation failed when fetching seller location');
       } else {

@@ -5,12 +5,10 @@ import { ListingSchema } from './schemas/listing.schema';
 import { MongooseModule } from '@nestjs/mongoose';
 import { SellerSchema } from 'src/seller/schemas/seller.schema';
 import { ImageUploadModule } from 'src/image-upload/image-upload.module';
-import { CommonModule } from '../common/common.module'; 
 
 
 @Module({
   imports: [
-    CommonModule,
     ImageUploadModule,
     MongooseModule.forFeature([
       { name: 'Listing', schema: ListingSchema },

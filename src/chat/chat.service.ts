@@ -1,6 +1,6 @@
 import { BadRequestException, HttpException, HttpStatus, Injectable, InternalServerErrorException, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import mongoose, { Model, Types } from 'mongoose';
+import { Model, Types } from 'mongoose';
 import { Chat } from './schemas/chat.schema';
 import { Message } from './schemas/message.schema';
 import { CreateChatDTO } from './dtos/create-chat.dto';
@@ -9,7 +9,7 @@ import { User } from 'src/user/schemas/user.schema';
 import axios from 'axios';
 import { NotificationsCounter } from './schemas/notifications-counter.schema';
 import { UserProfile } from 'src/userProfile/schemas/userProfile.schema';
-import { LoggingService } from '../common/services/logging.service';
+import { Logger } from '@nestjs/common';
 
 
 @Injectable()
@@ -20,10 +20,9 @@ export class ChatService {
     @InjectModel(Message.name) private messageModel: Model<Message>,
     @InjectModel(User.name) private userModel: Model<User>,
     @InjectModel(UserProfile.name) private userProfileModel: Model<UserProfile>,
-    @InjectModel(NotificationsCounter.name) private notificationsCounterModel: Model<NotificationsCounter>,
-    private readonly loggingService: LoggingService) {
-      this.loggingService.setContext(ChatService.name);
-    }
+    @InjectModel(NotificationsCounter.name) private notificationsCounterModel: Model<NotificationsCounter>) {}
+
+  private logger: Logger = new Logger('ChatService');
 
   async createChat(createChatDTO: CreateChatDTO): Promise<Chat> {
     try {
@@ -47,7 +46,7 @@ export class ChatService {
       }
       return chat.toObject(); // Convert the Mongoose document to a plain JavaScript object
     } catch (error) {
-      this.loggingService.error(`Error creating chat for ${createChatDTO}`, error);
+      this.logger.error(`Error creating chat for ${createChatDTO}`, error);
       throw new InternalServerErrorException('Error creating chat');
     }
   }
@@ -82,7 +81,7 @@ export class ChatService {
   
       return updatedChat;
     } catch (error) {
-      this.loggingService.error(`Error creating chat for buyer ${buyerId} and listing ${listingId}`, error);
+      this.logger.error(`Error creating chat for buyer ${buyerId} and listing ${listingId}`, error);
       throw new InternalServerErrorException('Error creating system chat');
     }
   }
@@ -131,7 +130,7 @@ export class ChatService {
 
       return chat;
     } catch (error) {
-      this.loggingService.error(`Error creating chat for chatId ${chatId}`, error);
+      this.logger.error(`Error creating chat for chatId ${chatId}`, error);
       throw new InternalServerErrorException('Error adding message to chat');
     }
   }
@@ -147,7 +146,7 @@ export class ChatService {
         }
       );
     } catch (error) {
-      this.loggingService.error(`Error marking messages as read for chatId ${chatId} and userId ${userId}`, error);
+      this.logger.error(`Error marking messages as read for chatId ${chatId} and userId ${userId}`, error);
       throw new InternalServerErrorException('Error marking messages as read');
     }
   }
@@ -181,7 +180,7 @@ export class ChatService {
   
       return chatsWithUnread;
     } catch (error) {
-      this.loggingService.error(`Error getting chats for user ${userId}`, error);
+      this.logger.error(`Error getting chats for user ${userId}`, error);
       if (error.name === 'NotFoundException') {
         throw error;
       } else if (error.name === 'ValidationError') {
@@ -225,7 +224,7 @@ export class ChatService {
         throw new NotFoundException(`Chat not found`);
       }
     } catch (error) {
-      this.loggingService.error(`Error deleting chat ${chatId}`, error);
+      this.logger.error(`Error deleting chat ${chatId}`, error);
       if (error.name === 'NotFoundException') {
         throw error;
       } else if (error.name === 'ValidationError') {
@@ -267,7 +266,7 @@ export class ChatService {
   
     return buyersInfo;
     } catch (error) {
-      this.loggingService.error(`Error fetching buyer details for listing ${listingId} and seller ${sellerId}`, error);
+      this.logger.error(`Error fetching buyer details for listing ${listingId} and seller ${sellerId}`, error);
       if (error.name === 'NotFoundException' || error.name === 'BadRequestException') {
         throw error;
       } else {
@@ -284,7 +283,7 @@ export class ChatService {
       }
       return notificationsCounter.unreadNotificationCount;
     } catch (error) {
-      this.loggingService.error(`Error getting notification count for user ${userId}`, error);
+      this.logger.error(`Error getting notification count for user ${userId}`, error);
       return 0;
     }
   }
@@ -305,7 +304,7 @@ export class ChatService {
         await newCounter.save();
       }
     } catch (error) {
-      this.loggingService.error(`Error updating notification count for user ${userId}`, error);
+      this.logger.error(`Error updating notification count for user ${userId}`, error);
       //throw new InternalServerErrorException('Error updating notification count');
     }
   }
@@ -335,7 +334,7 @@ export class ChatService {
         },
       });
     } catch (error) {
-      this.loggingService.error(`Error sending push notification for pushToken ${pushToken} and chatId ${chatId}`, error);
+      this.logger.error(`Error sending push notification for pushToken ${pushToken} and chatId ${chatId}`, error);
       //throw new InternalServerErrorException('Error updating notification count');
     }
   } 

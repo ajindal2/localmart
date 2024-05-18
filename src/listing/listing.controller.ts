@@ -1,4 +1,4 @@
-import { Controller, Post, Get, Put, Delete, Body, Param, Query, UseInterceptors, UploadedFiles, Req, BadRequestException, UseGuards, UnauthorizedException, Patch, ParseIntPipe, InternalServerErrorException } from '@nestjs/common';
+import { Controller, Post, Get, Put, Delete, Body, Param, Query, UseInterceptors, UploadedFiles, Req, BadRequestException, UseGuards, UnauthorizedException, Patch, ParseIntPipe, InternalServerErrorException, Logger } from '@nestjs/common';
 import { ListingService } from './listing.service';
 import { QueryListingDTO } from './dtos/query-listing.dto';
 import { CreateListingDTO } from './dtos/create-listing.dto';
@@ -17,6 +17,8 @@ export class ListingController {
     private listingService: ListingService,
     private imageUploadService: ImageUploadService 
     ) { }
+
+  private logger: Logger = new Logger('ListingController');
 
   @Get('/')
   async getListings(
