@@ -5,9 +5,12 @@ import { MongooseModule } from '@nestjs/mongoose';
 import { RatingSchema } from './schemas/rating.schema';
 import { SellerSchema } from 'src/seller/schemas/seller.schema';
 import { UserProfileSchema } from 'src/userProfile/schemas/userProfile.schema';
+import { CommonModule } from '../common/common.module'; 
+
 
 @Module({
   imports: [
+    CommonModule,
     MongooseModule.forFeature([
       { name: 'Rating', schema: RatingSchema },
       { name: 'Seller', schema: SellerSchema },

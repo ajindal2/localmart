@@ -1,10 +1,16 @@
-import { Injectable, Inject, BadRequestException } from '@nestjs/common';
+import { Injectable, Inject, BadRequestException, InternalServerErrorException } from '@nestjs/common';
 import { CacheService } from 'src/cache/cache.service';
+import { LoggingService } from 'src/common/services/logging.service';
 
 
 @Injectable()
 export class LocationService {
-    constructor(private cacheService: CacheService) {}
+    constructor(
+        private cacheService: CacheService,
+        private readonly loggingService: LoggingService) {
+            this.loggingService.setContext(LocationService.name);
+
+        }
 
     // Get city/postal from lat/long
     async reverseGeocode(lat: number, lng: number): Promise<any> {
@@ -49,12 +55,16 @@ export class LocationService {
             } else {
                 // Cache the error state without specific "unknown" result
                 this.cacheService.set(cacheKey, { error: true, errorTimestamp: Date.now() }, 60000); // Cache this error state for shorter 1 minute.
-                console.error(`Failed to reverse geocode coordinates '${lat}' '${lng}'`);
+                this.loggingService.error(`Failed to reverse geocode coordinates ${lat} ${lng}`, '');
                 throw new Error('Failed to fetch location');
             }
         } catch (error) {
-            console.error('Reverse geocoding error:', error);
-            throw new Error('An error occurred when fetching location');
+            this.loggingService.error(`Reverse geocoding error for ${lat} ${lng}`, error);
+            if (error.name === 'BadRequestException') {
+                throw error;
+            } else {
+                throw new InternalServerErrorException('An error occurred when fetching location');
+            }
         }
     }
     
@@ -76,7 +86,6 @@ export class LocationService {
             if (data.status === 'OK') {
                 const addressComponents = data.results[0]?.address_components;
                 const isUSAddress = addressComponents.some(component => component.types.includes('country') && (component.short_name === 'US' || component.long_name === 'United States'));
-
                 if (!isUSAddress) {
                     throw new BadRequestException(`Postal code is not within the United States.`);
                 }
@@ -89,12 +98,16 @@ export class LocationService {
                 throw new BadRequestException(`Postal code not found '${postalCode}'`);
             } else {
                 // Handle other API response statuses
-                console.error(`Failed to validate and geocode postal code: ${postalCode}`);
+                this.loggingService.error(`Failed to validate and geocode postal code: ${postalCode}`, '');
                 throw new Error('Failed to fetch location.');
             }
         } catch (error) {
-            console.error('Error geocoding postal code:', error);
-            throw error;
+            this.loggingService.error(`ValidateAndGeocodePostalCode error for postal code ${postalCode}`, error);
+            if (error.name === 'BadRequestException') {
+                throw error;
+            } else {
+                throw new InternalServerErrorException('An error occurred when geocoding postal code');
+            }
         }
     }
 

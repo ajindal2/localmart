@@ -4,14 +4,17 @@ import { Seller } from './schemas/seller.schema';
 import { Model } from 'mongoose';
 import { CreateSellerDTO } from './dtos/create-seller.dto';
 import { UserProfile } from 'src/userProfile/schemas/userProfile.schema';
-import mongoose from 'mongoose';
+import { LoggingService } from 'src/common/services/logging.service';
 
 @Injectable()
 export class SellerService {
     constructor(
         @InjectModel(Seller.name) private readonly sellerModel: Model<Seller>,
         @InjectModel(UserProfile.name) private userProfileModel: Model<UserProfile>,
-        ) { }
+        private readonly loggingService: LoggingService
+        ) { 
+          this.loggingService.setContext(SellerService.name);
+        }
 
   async create(createSellerDto: CreateSellerDTO): Promise<Seller> {
     const newSeller = new this.sellerModel(createSellerDto);

@@ -6,6 +6,7 @@ import { CreateRatingDTO } from './dtos/create-rating.dto';
 import { Seller } from 'src/seller/schemas/seller.schema';
 import { UserProfile } from 'src/userProfile/schemas/userProfile.schema';
 import { SavedListing } from 'src/saved-listing/schemas/saved-listing.schema';
+import { LoggingService } from 'src/common/services/logging.service';
 
 @Injectable()
 export class RatingService {
@@ -13,7 +14,10 @@ export class RatingService {
       @InjectModel(Rating.name) private readonly ratingModel: Model<Rating>,
       @InjectModel(Seller.name) private readonly sellerModel: Model<Seller>,
       @InjectModel(UserProfile.name) private readonly userProfileModel: Model<UserProfile>,
-      ) { }
+      private readonly loggingService: LoggingService
+      ) { 
+        this.loggingService.setContext(RatingService.name);
+      }
 
   async createRating(createRatingDTO: CreateRatingDTO): Promise<Rating> {
     try {
@@ -29,16 +33,15 @@ export class RatingService {
       return savedRating;
 
     } catch (error) {
+      this.loggingService.error(`Error creating${createRatingDTO.role} rating for listing ${createRatingDTO.listingId}, ratedBy ${createRatingDTO.ratedBy}, ratedUser ${createRatingDTO.ratedUser}`, error);
       if (error.code === 11000) {
         // Handle duplicate key error (e.g., if you have unique constraints in your schema)
         throw new ConflictException('Duplicate entry for rating.');
       } else if (error.name === 'ValidationError') {
-        // Handle Mongoose validation errors
         throw new BadRequestException('Validation failed for rating.');
       } else if (error.name === 'ConflictException') {
         throw error;
       } else {
-        console.error('Error creating rating:', error);
         throw new InternalServerErrorException('Failed to create rating.');
       }
     }
@@ -58,11 +61,11 @@ export class RatingService {
       }).exec();
       return !!rating; // Convert the result to a boolean
     } catch (error) {
+      this.loggingService.error(`Error checking rating exists for listing ${listingId}, ratedBy ${ratedBy}, ratedUser ${ratedUser}`, error);
       if (error.name === 'ValidationError') {
-        throw new BadRequestException('Validation failed for rating.');
+        throw new BadRequestException('Validation failed for rating existence check');
       } else {
-        console.error('Error creating rating:', error);
-        throw new InternalServerErrorException('Failed to check rating.');
+        throw new InternalServerErrorException('Failed to check rating exists.');
       }
     }
   }
@@ -115,7 +118,7 @@ export class RatingService {
 
       return { averageRating, ratingsWithProfile };
     } catch (error) {
-        console.error('Error fetching ratings for userId:', userId);
+        this.loggingService.error(`Error fetching ratings for userId ${userId}`, error)
         if (error.name === 'ValidationError') {
           throw new BadRequestException('Database validation failed in fetching ratings with profiles.');
         } else {
@@ -133,7 +136,7 @@ export class RatingService {
       // Fetch the userId from the sellerId
       const seller = await this.sellerModel.findById(sellerId).exec();
       if (!seller) {
-        throw new NotFoundException('SellerId not found: ', sellerId);
+        throw new NotFoundException(`SellerId ${sellerId} not found `);
       }
 
       // Step 1: Retrieve 'Seller' ratings and populate 'ratedBy' field
@@ -205,7 +208,7 @@ export class RatingService {
 
       return { averageRating, ratingsWithProfile, sellerProfile, tagsSummary };
     } catch (error) {
-      console.error('Error fetching ratings with profiles:', error);
+      this.loggingService.error(`Error fetching ratings with profiles for sellerId ${sellerId}`, error)
       if (error.name === 'NotFoundException') {
         throw error;
       } else if (error.name === 'ValidationError') {

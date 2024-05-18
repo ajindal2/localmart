@@ -3,12 +3,16 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { SavedListing } from './schemas/saved-listing.schema';
 import { CreateSavedListingDTO } from './dtos/create-saved-listing.dto';
+import { LoggingService } from 'src/common/services/logging.service';
 
 @Injectable()
 export class SavedListingService {
   constructor(
-    @InjectModel(SavedListing.name) private readonly savedListingModel: Model<SavedListing>
-    ) { }
+      @InjectModel(SavedListing.name) private readonly savedListingModel: Model<SavedListing>,
+      private readonly loggingService: LoggingService
+    ) { 
+      this.loggingService.setContext(SavedListingService.name);
+    }
 
   async create(createSavedListingDto: CreateSavedListingDTO): Promise<SavedListing> {
 
@@ -25,13 +29,11 @@ export class SavedListingService {
         return await newSavedListing.save();
       }
     } catch (error) {
-      console.error('Error creating saved listing:', error);
-
+      this.loggingService.error(`Error creating saved listing for user ${createSavedListingDto.user} and listing ${createSavedListingDto.listing}`, error);
       // Handle specific error types (e.g., MongoDB validation errors)
       if (error.name === 'ValidationError') {
-        throw new InternalServerErrorException('Database validation failed while creating saved listing.');
+        throw new BadRequestException('Database validation failed while creating saved listing.');
       }
-
       // Throw a generic internal server error for unexpected cases
       throw new InternalServerErrorException('An unexpected error occurred while creating saved listing.');
     }
@@ -48,7 +50,7 @@ export class SavedListingService {
     }
     return savedListings;
     } catch (error) {
-      console.error(`Error fetching saved listings for ${userId}:`, error);
+      this.loggingService.error(`Error fetching saved listings for user ${userId}:`, error);
       if (error.name === 'NotFoundException') {
         throw error;
       } else if (error.name === 'ValidationError') {
@@ -63,8 +65,7 @@ export class SavedListingService {
     try {
       return await this.savedListingModel.findByIdAndRemove(id).exec();
     } catch (error) {
-      console.error('Error deleting saved listing:', error);
-  
+      this.loggingService.error(`Error deleting saved listing ${id}:`, error);
       // Handle specific error types (e.g., MongoDB validation errors)
       if (error.name === 'ValidationError') {
         throw new BadRequestException('Database validation failed while deleting saved listing.');
@@ -83,7 +84,7 @@ export class SavedListingService {
         return { isSaved: false };
       }
     } catch (error) {
-      console.error(`Error fetching saved listing status for ${userId}:`, error);
+      this.loggingService.error(`Error checking saved status for user ${userId} and listing ${listingId}`, error);
       if (error.name === 'ValidationError') {
         throw new BadRequestException('DB Validation failed');
       } else {

@@ -2,11 +2,11 @@ import { Module } from '@nestjs/common';
 import { LocationController } from './location.controller';
 import { LocationService } from './location.service';
 import { CacheService } from 'src/cache/cache.service';
-//import { UserProfileService } from 'src/userProfile/userProfile.service';
-//import { UserProfileModule } from 'src/userProfile/userProfile.module'; // Import the UserProfileModule
+import { CommonModule } from '../common/common.module'; 
+
 
 @Module({
-  //imports: [UserProfileModule], // Add UserProfileModule to imports
+  imports: [CommonModule], 
   controllers: [LocationController],
   providers: [LocationService, CacheService]
 })

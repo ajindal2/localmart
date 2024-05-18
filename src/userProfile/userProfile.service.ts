@@ -6,10 +6,16 @@ import { CreateUserProfileDTO } from './dtos/create-userProfile.dto';
 import { UpdateUserProfileDTO } from './dtos/update-userProfile.dto';
 import mongoose from 'mongoose';
 import { LocationDTO } from 'src/location/dtos/location.dto';
+import { LoggingService } from 'src/common/services/logging.service';
+
 
 @Injectable()
 export class UserProfileService {
-  constructor(@InjectModel(UserProfile.name) private readonly userProfileModel: Model<UserProfile>) { }
+  constructor(@InjectModel(UserProfile.name) private readonly userProfileModel: Model<UserProfile>,
+  private readonly loggingService: LoggingService
+        ) { 
+          this.loggingService.setContext(UserProfileService.name);
+        }
 
   async createUserProfile(createUserProfileDto: CreateUserProfileDTO): Promise<UserProfile> {
     const newUserProfile = await this.userProfileModel.create(createUserProfileDto);

@@ -6,10 +6,16 @@ import { CreateUserDTO } from './dtos/create-user.dto';
 import { UpdateUserDTO } from './dtos/update-user.dto';
 import * as bcrypt from 'bcrypt';
 import { UpdatePasswordDTO } from './dtos/update-password.dto';
+import { LoggingService } from 'src/common/services/logging.service';
+
 
 @Injectable()
 export class UserService {
-  constructor(@InjectModel(User.name) private readonly userModel: Model<User>) { }
+  constructor(@InjectModel(User.name) private readonly userModel: Model<User>,
+  private readonly loggingService: LoggingService
+    ) { 
+      this.loggingService.setContext(UserService.name);
+    }
 
   async findAll(): Promise<User[]> {
     return this.userModel.find().exec();

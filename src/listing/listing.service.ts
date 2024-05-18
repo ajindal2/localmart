@@ -190,7 +190,6 @@ export class ListingService {
       // Find the listing by ID
       const listing = await this.listingModel.findById(listingId);
       if (!listing) {
-        //console.error('ListingId not found: ', listingId);
         throw new NotFoundException('Listing not found');
       }
     
@@ -200,8 +199,8 @@ export class ListingService {
         try {
           locationData = JSON.parse(updateListingDto.location);
         } catch (error) {
-          console.error('Invalid location data: ', updateListingDto.location);
-          throw new BadRequestException('Invalid location data');
+          this.loggingService.error(`Invalid location data ${updateListingDto.location} when updating listing ${listingId} `, error);
+          throw new BadRequestException('Invalid location data when updating listing');
         }
       } else {
         locationData = updateListingDto.location;
@@ -231,6 +230,7 @@ export class ListingService {
             subCategories: category.subCategories || []
           }
         } catch (error) {
+          this.loggingService.error(`Invalid JSON format for category for update listing ${listingId}`, error);
           throw new BadRequestException('Invalid JSON format for category.');
         }
       }
@@ -238,10 +238,10 @@ export class ListingService {
       // Save the updated listing
       return await listing.save();
     } catch (error) {
-      console.error(`Error updating listing ${listingId}`, error);
+      this.loggingService.error(`Error updating listing ${listingId}`, error);
       if (error.name === 'NotFoundException') {
         throw error;
-      }  else if (error.name === 'BadRequestException') {
+      } else if (error.name === 'BadRequestException') {
         throw error;
       } else if (error.name === 'ValidationError') {
         throw new BadRequestException('DB validation failed');
@@ -252,12 +252,9 @@ export class ListingService {
   }
 
   async deleteListing(listingId: string): Promise<void> {
-    listingId = '507f1f77bcf86cd799439011';  
-
     try {
       const result = await this.listingModel.deleteOne({ _id: listingId }).exec();
       if (result.deletedCount === 0) {
-        //console.error(`Listing with ID "${listingId}" not found`);
         throw new NotFoundException(`Listing not found`);
       }
     } catch (error) {
@@ -277,13 +274,12 @@ export class ListingService {
     try {
       const listing = await this.listingModel.findById(listingId);
       if (!listing) {
-        console.error(`Listing with ID "${listingId}" not found`);
         throw new NotFoundException(`Listing not found`);
       }
       listing.state = newStatus;
       return await listing.save();
     } catch (error) {
-      console.error(`Error marking listing as sold ${listingId}`, error);
+      this.loggingService.error(`Error marking listing as sold ${listingId}`, error);
       if (error.name === 'NotFoundException') {
         throw error;
       } else if (error.name === 'ValidationError') {
@@ -308,7 +304,7 @@ async createListing(userId: string, createListingDto: CreateListingDTO): Promise
       try {
         locationData = JSON.parse(createListingDto.location);
       } catch (error) {
-        console.error('Invalid location data: ', createListingDto.location);
+        this.loggingService.error(`Invalid location data ${createListingDto.location} when creating listing for user ${userId} `, error);
         throw new BadRequestException('Invalid location data');
       }
     } else {
@@ -327,6 +323,7 @@ async createListing(userId: string, createListingDto: CreateListingDTO): Promise
       try {
         category = JSON.parse(category);
       } catch (error) {
+        this.loggingService.error(`Invalid JSON format for category when creating listing for user ${userId}`, error);
         throw new BadRequestException('Invalid JSON format for category.');
       }
     }
@@ -367,7 +364,7 @@ async createListing(userId: string, createListingDto: CreateListingDTO): Promise
 
     return await newListing.save();
   } catch (error) {
-      console.error(`Error creating listing`, error);
+      this.loggingService.error(`Error creating listing for user ${userId}`, error);
       if (error.name === 'ValidationError') {
         throw new BadRequestException('DB validation failed');
       } else if (error.name === 'BadRequestException') {
@@ -379,17 +376,28 @@ async createListing(userId: string, createListingDto: CreateListingDTO): Promise
 }
 
 async updateListingWithImageUrl(listingId: mongoose.Types.ObjectId, imageUrl: string): Promise<void> {
-  const listing = await this.listingModel.findOne(listingId);
-  if (!listing) {
-    throw new NotFoundException('Listing not found: ${listingId}');
-  }
+  try {
+    const listing = await this.listingModel.findOne(listingId);
+    if (!listing) {
+      throw new NotFoundException('Listing not found');
+    }
 
-  if (!listing.imageUrls) {
-    listing.imageUrls = [];
-  }
+    if (!listing.imageUrls) {
+      listing.imageUrls = [];
+    }
 
-  listing.imageUrls.push(imageUrl);
-  await listing.save();
+    listing.imageUrls.push(imageUrl);
+    await listing.save();
+  } catch (error) {
+    this.loggingService.error(`Error update listing with imageUrl ${imageUrl} for listing ${listingId}`, error);
+      if (error.name === 'NotFoundException') {
+        throw error;
+      } else if (error.name === 'ValidationError') {
+        throw new BadRequestException('DB validation failed');
+      } else {
+        throw new InternalServerErrorException('An unexpected error occurred');
+      }
+  }
 }
 
 private convertLocationDtoToSchema(locationDto: LocationDTO): any {
@@ -406,7 +414,6 @@ private convertLocationDtoToSchema(locationDto: LocationDTO): any {
       coordinates: [coordinates.longitude, coordinates.latitude] // [longitude, latitude]
     };
   }
-
   return location;
 }
 }

@@ -6,11 +6,17 @@ import { Types } from 'mongoose';
 import { MarkAsReadDto } from './dtos/mark-as-read.dto';
 import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
 import { Request } from 'express';
+import { LoggingService } from '../common/services/logging.service';
 
 
 @Controller('chat')
 export class ChatController {
-  constructor(private readonly chatService: ChatService) {}
+  constructor(
+    private readonly chatService: ChatService,
+    private readonly loggingService: LoggingService) 
+    {
+      this.loggingService.setContext(ChatController.name);
+    }
 
   @UseGuards(JwtAuthGuard)
   @Post()
