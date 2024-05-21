@@ -192,8 +192,6 @@ export class ChatService {
   }
 
   async isUserPartOfChat(userId: string, chatId: string): Promise<boolean> {
-    this.logger.log(`Inside isUserPartOfChat, user: ${userId} and chat ${chatId}`);
-
     try {
       const chat = await this.chatModel.findById(chatId).exec();
       if (!chat) {
