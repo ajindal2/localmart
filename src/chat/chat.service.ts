@@ -192,6 +192,8 @@ export class ChatService {
   }
 
   async isUserPartOfChat(userId: string, chatId: string): Promise<boolean> {
+    this.logger.log(`Inside isUserPartOfChat, user: ${userId} and chat ${chatId}`);
+
     try {
       const chat = await this.chatModel.findById(chatId).exec();
       if (!chat) {
@@ -212,7 +214,7 @@ export class ChatService {
 
   async getLatestMessages(chatId: string): Promise<any> {
     try {
-      const chat = await this.chatModel.findById(chatId).populate('messages').exec();
+      const chat = await this.chatModel.findById(chatId).exec();
       if (!chat) {
         throw new NotFoundException('Chat not found');
       }
