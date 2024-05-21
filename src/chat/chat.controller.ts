@@ -37,6 +37,28 @@ export class ChatController {
   }
 
   @UseGuards(JwtAuthGuard)
+  @Get('/:chatId/messages')
+  async getLatestMessages(@Param('chatId') chatId: string, @Req() req: Request) {
+    if (!req.user) {
+      throw new UnauthorizedException('No user object found in request');
+    }
+
+    // Extract userId and check if it exists
+    const userIdFromReq = req.user['userId']; 
+    if (!userIdFromReq) {
+      throw new UnauthorizedException('User ID not found in request');
+    }
+
+    // Ensure the user is part of the chat (this logic should be in the service)
+    const isUserPartOfChat = await this.chatService.isUserPartOfChat(userIdFromReq, chatId);
+    if (!isUserPartOfChat) {
+      throw new UnauthorizedException('User is not authorized to view messages');
+    }
+
+    return await this.chatService.getLatestMessages(chatId);
+  }
+
+  @UseGuards(JwtAuthGuard)
   @Post('/markAsRead')
   async markChatMessagesAsRead(@Body() body: MarkAsReadDto) {
     const { chatId, userId } = body;

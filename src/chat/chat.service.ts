@@ -191,6 +191,44 @@ export class ChatService {
     }
   }
 
+  async isUserPartOfChat(userId: string, chatId: string): Promise<boolean> {
+    try {
+      const chat = await this.chatModel.findById(chatId).exec();
+      if (!chat) {
+        throw new NotFoundException('Chat not found');
+      }
+      return chat.sellerId.equals(userId) || chat.buyerId.equals(userId);
+    } catch (error) {
+      this.logger.error(`Error checking if user ${userId} is part of chat ${chatId}`, error);
+      if (error.name === 'NotFoundException') {
+        throw error;
+      } else if (error.name === 'ValidationError') {
+        throw new BadRequestException('DB validation failed');
+      } else {
+        throw new InternalServerErrorException('An unexpected error occurred when checking user');
+      }
+    }
+  }
+
+  async getLatestMessages(chatId: string): Promise<any> {
+    try {
+      const chat = await this.chatModel.findById(chatId).populate('messages').exec();
+      if (!chat) {
+        throw new NotFoundException('Chat not found');
+      }
+      return chat.messages;
+    } catch (error) {
+      this.logger.error(`Error getting latest messages for chat ${chatId}`, error);
+      if (error.name === 'NotFoundException') {
+        throw error;
+      } else if (error.name === 'ValidationError') {
+        throw new BadRequestException('DB validation failed');
+      } else {
+        throw new InternalServerErrorException('An unexpected error occurred when getting latest messages for chat');
+      }
+    }
+  }
+
   // Not in use
   async getChat(chatId: string): Promise<Chat> {
     try {
