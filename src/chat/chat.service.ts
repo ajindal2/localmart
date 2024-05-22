@@ -169,7 +169,7 @@ export class ChatService {
       const chatsWithUnread = chats.map(chat => {
         // Filter out messages that were sent by the userId and are unread
         const unreadMessages = chat.messages.filter(message => 
-          !message.read && !message.senderId.equals(userId) // Assuming senderId is stored as ObjectId and populated
+          !message.read && !message.senderId.equals(userId) 
         );
         return {
           ...chat.toObject(),
@@ -212,7 +212,9 @@ export class ChatService {
 
   async getLatestMessages(chatId: string): Promise<any> {
     try {
-      const chat = await this.chatModel.findById(chatId).exec();
+      const chat = await this.chatModel.findById(chatId)
+      .populate({ path: 'messages.senderId', select: 'displayName' }) // Populate senderId with displayName
+      .exec();
       if (!chat) {
         throw new NotFoundException('Chat not found');
       }

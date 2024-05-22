@@ -9,7 +9,7 @@ async function bootstrap() {
   dotenv.config();
   const app = await NestFactory.create(AppModule);
   app.enableCors();
-  app.use('/uploads', express.static('uploads'));
+  //app.use('/uploads', express.static('uploads'));
   //app.useGlobalFilters(new NotFoundExceptionFilter()); // Apply globally
   //app.use(new CorrelationIdMiddleware().use);
   const port = process.env.PORT || 3000;

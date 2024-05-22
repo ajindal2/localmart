@@ -18,7 +18,7 @@ import { Logger } from '@nestjs/common';
 
 @WebSocketGateway({
     cors: {
-      origin: '*', // Allow any origin
+      origin: '*', // Allow any origin. It is safe since CORS is not an issue for React native apps.
     },
   })
   export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect {
