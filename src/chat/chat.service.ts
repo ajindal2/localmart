@@ -95,7 +95,9 @@ export class ChatService {
       );
 
       // Get the chat document
-      const chat = await this.chatModel.findOne(chatId).exec();
+      const chat = await this.chatModel.findById(chatId)
+      .populate({ path: 'messages.senderId', select: 'displayName' }) // Populate senderId with displayName
+      .exec();
 
       // Get the recipient's ID
       const recipientId = chat.sellerId.equals(message.senderId) ? chat.buyerId : chat.sellerId;
