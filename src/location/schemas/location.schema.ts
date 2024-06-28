@@ -33,7 +33,8 @@ export const LocationSchema = new mongoose.Schema({
       },
       message: 'Invalid postal code format'
     } 
-  }
+  },
+  formatted_address: { type: String, required: false } 
 });
 
 LocationSchema.index({ 'coordinates': '2dsphere' });

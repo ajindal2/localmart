@@ -401,6 +401,7 @@ private convertLocationDtoToSchema(locationDto: LocationDTO): any {
     postalCode: locationDto.postalCode,
     city: locationDto.city,
     state: locationDto.state,
+    formatted_address: locationDto.formatted_address, 
   };
 
   if (locationDto.coordinates && locationDto.coordinates.length > 0) {

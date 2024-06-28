@@ -1,12 +1,15 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
-import * as express from 'express';
 import * as dotenv from 'dotenv';
 //import { CorrelationIdMiddleware } from './correlation-id.middleware';
 
 
 async function bootstrap() {
-  dotenv.config();
+  const environment = process.env.NODE_ENV || 'development';
+  const envFilePath = `.env.${environment}`;
+  dotenv.config({ path: envFilePath });
+
+  // dotenv.config();
   const app = await NestFactory.create(AppModule);
   app.enableCors();
   //app.use('/uploads', express.static('uploads'));

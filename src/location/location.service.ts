@@ -39,6 +39,7 @@ export class LocationService {
                 }
 
                 const result = {
+                    formatted_address: data.results[0].formatted_address,
                     city: data.results[0]?.address_components?.find((component) => component.types.includes('locality'))?.long_name,
                     state: data.results[0]?.address_components?.find((component) => component.types.includes('administrative_area_level_1'))?.long_name,
                     postalCode: data.results[0]?.address_components?.find((component) => component.types.includes('postal_code'))?.long_name,
@@ -117,11 +118,14 @@ export class LocationService {
         const city = result.address_components.find((component) => component.types.includes('locality'))?.long_name;
         const state = result.address_components.find((component) => component.types.includes('administrative_area_level_1'))?.long_name;
         const location = result.geometry.location;
+        const formatted_address = result.formatted_address || null;
+
         return {
             city,
             state,
             postalCode: postalCode,
             coordinates: [location.lng, location.lat],
+            formatted_address
         };
     }
 }

@@ -22,6 +22,10 @@ export class LocationDTO {
     @IsOptional()
     postalCode?: string;
 
+    @IsString()
+    @IsOptional()
+    formatted_address?: string; 
+    
     @IsArray()
     @ValidateNested({ each: true })
     @Type(() => CoordinatesDTO)
