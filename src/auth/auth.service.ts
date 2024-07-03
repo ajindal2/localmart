@@ -113,7 +113,7 @@ export class AuthService {
   }
 
   private generatePassword(): string {
-    return randomBytes(12).toString('hex'); // Generates a 24-character hexadecimal string
+    return randomBytes(4).toString('hex'); // Generates a 8-character hexadecimal string
   }
 
   async createAccessToken(user: any): Promise<string> {

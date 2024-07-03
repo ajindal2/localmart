@@ -8,9 +8,9 @@ export class UserPreferencesController {
   constructor(private readonly userPreferencesService: UserPreferencesService) {}
 
   @Get('/:userId/search-distance')
-  async getSearchDistance(@Param('userId') userId: string): Promise<{ searchDistance: number }> {
+  async getSearchDistance(@Param('userId') userId: string): Promise<number> {
       const searchDistance = await this.userPreferencesService.getSearchDistance(userId);
-      return { searchDistance };
+      return searchDistance;
   }
 
   @Put('/:userId/search-distance')
