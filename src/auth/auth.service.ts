@@ -63,9 +63,7 @@ export class AuthService {
       await this.userService.updateSystemPassword(user._id, newPassword); 
 
       await this.mailerService.sendMail({
-        // TODO change it to users email
-        //to: email,
-        to: 'aanchaljindal@gmail.com',
+        to: email,
         from: 'support@farmvox.com',
         subject: 'Your new password',
         template: 'password-reset',
