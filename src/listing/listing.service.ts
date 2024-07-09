@@ -404,13 +404,20 @@ private convertLocationDtoToSchema(locationDto: LocationDTO): any {
     formatted_address: locationDto.formatted_address, 
   };
 
-  if (locationDto.coordinates && locationDto.coordinates.length > 0) {
-    const coordinates = locationDto.coordinates[0]; // Assuming you are sending only one set of coordinates
-    location['coordinates'] = {
-      type: 'Point',
-      coordinates: [coordinates.longitude, coordinates.latitude] // [longitude, latitude]
-    };
+  if (locationDto.coordinates) {
+    if (Array.isArray(locationDto.coordinates) && locationDto.coordinates.length > 0) {
+      const coordinates = locationDto.coordinates[0];
+      if (typeof coordinates.latitude === 'number' && typeof coordinates.longitude === 'number') {
+        location['coordinates'] = {
+          type: 'Point',
+          coordinates: [coordinates.longitude, coordinates.latitude] // [longitude, latitude]
+        };
+      }
+    } else if ((locationDto.coordinates as any).type === 'Point' && Array.isArray((locationDto.coordinates as any).coordinates)) {
+      location['coordinates'] = locationDto.coordinates; // Use the coordinates directly
+    } 
   }
+
   return location;
 }
 }
