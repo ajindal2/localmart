@@ -88,16 +88,7 @@ export class AuthController {
 
   @Post('/contact-us')
   @UseGuards(JwtAuthGuard)
-  @UseInterceptors(FileInterceptor('attachment', {
-    storage: diskStorage({
-      destination: './uploads',
-      filename: (req, file, callback) => {
-        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-        callback(null, file.fieldname + '-' + uniqueSuffix)
-      }
-    }),
-    limits: { fileSize: 10 * 1024 * 1024 } // limits to 10 MB
-  }))
+  @UseInterceptors(FileInterceptor('attachment'))
   async sendContactEmail(@UploadedFile() file: Express.Multer.File, @Body() contactUsDto: ContactUsDTO): Promise<string> {
     await this.authService.sendContactUsMail(
       contactUsDto.email,
