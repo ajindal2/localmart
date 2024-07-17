@@ -57,9 +57,9 @@ export class AuthController {
 
   @Post('/refresh')
   @UseGuards(ThrottlerGuard) 
-  @Throttle({ default: { limit: 20, ttl: 60000 } })
+  @Throttle({ default: { limit: 100, ttl: 60000 } })
   async refresh(@Body() refreshTokenDto: RefreshTokenDTO) {
-    const { access_token, refresh_token } = await this.authService.refreshToken(refreshTokenDto.refreshToken);
+    const { access_token, refresh_token } = await this.authService.refreshTokens(refreshTokenDto.refreshToken);
     if (!access_token) {
       throw new UnauthorizedException();
     }

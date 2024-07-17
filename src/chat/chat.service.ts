@@ -282,30 +282,31 @@ export class ChatService {
       const chats = await this.chatModel.find({
         listingId: listingId,
         sellerId: sellerId,
+        $expr: { $gt: [{ $size: "$messages" }, 0] } // Check that messages list is non-empty
       })
       .populate({ path: 'buyerId', select: 'displayName' }) // Populate buyerId to get displayName
       .exec();
 
-      // Map over the chats to extract buyer information with profile picture
-      const buyersInfo = await Promise.all(chats.map(async chat => {
+    const buyersInfo = await Promise.all(chats.map(async chat => {
 
       if (chat && chat.buyerId && 'displayName' in chat.buyerId) {
         // Fetch UserProfile for the populated buyerId
         const userProfile = await this.userProfileModel.findOne({ userId: chat.buyerId._id }).exec();
-        if (!userProfile) {
-          throw new Error(`UserProfile not found for buyerId ${chat.buyerId._id}`);
-        }
-    
-        return {
-          buyerId: chat.buyerId._id,
-          displayName: chat.buyerId.displayName,
-          profilePicture: userProfile.profilePicture,
+        if (userProfile) {
+          return {
+            buyerId: chat.buyerId._id,
+            displayName: chat.buyerId.displayName,
+            profilePicture: userProfile.profilePicture,
+          };
+        } else {
+          return {
+            buyerId: chat.buyerId._id,
+            displayName: chat.buyerId.displayName,
+            profilePicture: null,
         };
-      } else  {
-        throw new Error('Buyer information could not be retrieved.');
       }
-    }));
-  
+    }}));
+
     return buyersInfo;
     } catch (error) {
       this.logger.error(`Error fetching buyer details for listing ${listingId} and seller ${sellerId}`, error);

@@ -7,6 +7,7 @@ import { Model, Types } from 'mongoose';
 import { UserService } from 'src/user/user.service';
 import { randomBytes } from 'crypto';
 import { MailerService } from '@nestjs-modules/mailer'; 
+import { v4 as uuidv4 } from 'uuid';
 
 
 @Injectable()
@@ -36,17 +37,66 @@ export class AuthService {
   }
 
   async login(user: any) {
-    const payload = { email: user.emailAddress, userId: user._id };
-    const refreshToken = await this.createRefreshToken(user);
+    const tokens = await this.generateUserTokens(user._id);
 
-    return {
+    const ret = {
       user: {
         _id: user._id,
         email: user.emailAddress,
       },
-      access_token: this.jwtService.sign(payload),
-      refresh_token: refreshToken,
+      ...tokens,
     };
+    return ret;
+  }
+
+  async generateUserTokens(userId): Promise<{ access_token: string, refresh_token: string }> {
+    try {
+      const accessToken = this.jwtService.sign({ userId: userId });
+      const refreshToken = uuidv4();
+
+      await this.storeRefreshToken(refreshToken, userId);
+      return {
+        access_token: accessToken,
+        refresh_token: refreshToken,
+      };
+    } catch (error) {
+      this.logger.error(`Error when generating user tokens for user ${userId}`, error);
+      throw new InternalServerErrorException('An unexpected error occurred');
+    }
+  }
+
+  async storeRefreshToken(token: string, userId) {
+    const expiryDate = new Date();
+    expiryDate.setDate(expiryDate.getDate() + 3); // 3 days from now
+
+    await this.refreshTokenModel.create({
+      token: token,
+      userId: userId,
+      expiryDate,
+      lastUsedAt: new Date(),
+    });
+  }
+
+  async refreshTokens(refreshToken: string): Promise<{ access_token: string, refresh_token: string }> {
+    try {
+      const token = await this.refreshTokenModel.findOneAndDelete({
+        token: refreshToken,
+        expiryDate: { $gte: new Date() },
+      });
+
+      if (!token) {
+        throw new UnauthorizedException('Invalid refresh token');
+      }
+
+      return await this.generateUserTokens(token.userId);
+    } catch (error) {
+      this.logger.error(`Error in refreshing token for token ${refreshToken}`, error);
+      if (error.name === 'UnauthorizedException') {
+        throw error;
+      } else {
+        throw new InternalServerErrorException('An unexpected error occurred');
+      }
+    }
   }
 
   async handleForgotPassword(email: string): Promise<void> {
