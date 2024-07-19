@@ -114,6 +114,11 @@ export class ChatController {
     return await this.chatService.getNotificationCount(userId);
   }
 
+  @Get('/:userId/notificationCountV2')
+  async getNotificationCountV2(@Param('userId') userId: string, @Req() req: Request) {
+    return await this.chatService.getNotificationCount(userId);
+  }
+
   @UseGuards(JwtAuthGuard)
   @Post('/:userId/updateNotificationCount')
   async updateNotificationCount(@Param('userId') userId: string, @Body('count') count: number, @Req() req: Request) {

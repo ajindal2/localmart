@@ -67,7 +67,7 @@ export class AuthService {
 
   async storeRefreshToken(token: string, userId) {
     const expiryDate = new Date();
-    expiryDate.setDate(expiryDate.getDate() + 3); // 3 days from now
+    expiryDate.setDate(expiryDate.getDate() + 60); // 60 days from now
 
     await this.refreshTokenModel.create({
       token: token,
@@ -79,7 +79,8 @@ export class AuthService {
 
   async refreshTokens(refreshToken: string): Promise<{ access_token: string, refresh_token: string }> {
     try {
-      const token = await this.refreshTokenModel.findOneAndDelete({
+        // Check if the token is valid and not expired
+        const token = await this.refreshTokenModel.findOne({
         token: refreshToken,
         expiryDate: { $gte: new Date() },
       });
@@ -88,7 +89,9 @@ export class AuthService {
         throw new UnauthorizedException('Invalid refresh token');
       }
 
-      return await this.generateUserTokens(token.userId);
+      const newTokens = await this.generateUserTokens(token.userId);
+      await this.refreshTokenModel.deleteOne({ token: refreshToken });
+      return newTokens;
     } catch (error) {
       this.logger.error(`Error in refreshing token for token ${refreshToken}`, error);
       if (error.name === 'UnauthorizedException') {
