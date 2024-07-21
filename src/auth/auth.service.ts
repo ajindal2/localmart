@@ -55,6 +55,8 @@ export class AuthService {
       const refreshToken = uuidv4();
 
       await this.storeRefreshToken(refreshToken, userId);
+      console.log('Generating new tokens: ', accessToken, refreshToken);
+
       return {
         access_token: accessToken,
         refresh_token: refreshToken,
@@ -67,7 +69,7 @@ export class AuthService {
 
   async storeRefreshToken(token: string, userId) {
     const expiryDate = new Date();
-    expiryDate.setDate(expiryDate.getDate() + 60); // 60 days from now
+    expiryDate.setDate(expiryDate.getDate() + 2); // 60 days from now
 
     await this.refreshTokenModel.create({
       token: token,
@@ -78,6 +80,7 @@ export class AuthService {
   }
 
   async refreshTokens(refreshToken: string): Promise<{ access_token: string, refresh_token: string }> {
+    console.log('Refreshing token for: ', refreshToken);
     try {
         // Check if the token is valid and not expired
         const token = await this.refreshTokenModel.findOne({
