@@ -82,49 +82,51 @@ export class RatingService {
   async getRatingsByUser(userId: string) {
     try {
       // Step 1: Retrieve ratings and populate 'ratedBy' field
-      const ratings = await this.ratingModel.find({ 
+      const ratings = await this.ratingModel.find({
         ratedUser: userId,
         role: 'seller' // Only fetch ratings where the user is rated as a seller
       })
       .populate('ratedBy', 'displayName')
       .populate('ratedUser', 'displayName')
       .exec();
-
+  
       if (!ratings || ratings.length === 0) {
         // Handle the case where no ratings are found
         return { averageRating: 0, ratingsWithProfile: [] };
       }
-
+  
       // Step 3: Compute Average Rating
       const sum = ratings.reduce((acc, rating) => acc + rating.stars, 0);
       const averageRating = sum / ratings.length;
-    
-      // Extract user IDs for profile lookup
-      const userIds = ratings.map(rating => rating.ratedBy._id);
-    
+  
+      // Extract user IDs for profile lookup, checking for null ratedBy
+      const userIds = ratings
+        .map(rating => rating.ratedBy ? rating.ratedBy._id : null)
+        .filter(id => id !== null);
+  
       // Step 4: Fetch UserProfiles based on userIds and map ratings
       const userProfiles = await this.userProfileModel.find({ userId: { $in: userIds } });
-    
+  
       const ratingsWithProfile = ratings.map(rating => {
-        const userProfile = userProfiles.find(profile => profile.userId.equals(rating.ratedBy._id));
+        const userProfile = rating.ratedBy ? userProfiles.find(profile => profile.userId.equals(rating.ratedBy._id)) : null;
         return {
           ...rating.toObject(), // Convert the Mongoose document to a plain object
-          ratedByProfilePicture: userProfile?.profilePicture,
+          ratedBy: rating.ratedBy || null,
+          ratedByProfilePicture: userProfile ? userProfile.profilePicture : null, // Return null if userProfile or ratedBy is null
         };
       });
-
+  
       return { averageRating, ratingsWithProfile };
     } catch (error) {
-        this.logger.error(`Error fetching ratings for userId ${userId}`, error)
-        if (error.name === 'ValidationError') {
-          throw new BadRequestException('Database validation failed in fetching ratings with profiles.');
-        } else {
-          throw new InternalServerErrorException('An unexpected error occurred in fetching ratings for the user');
-        }
+      this.logger.error(`Error fetching ratings for userId ${userId}`, error);
+      if (error.name === 'ValidationError') {
+        throw new BadRequestException('Database validation failed in fetching ratings with profiles.');
+      } else {
+        throw new InternalServerErrorException('An unexpected error occurred in fetching ratings for the user');
+      }
     }
   }
 
-  // TODO think if the return type of this should be defined by an interface.
   async findRatingsWithProfilesBySellerId(sellerId: string) {
     try {
       if (!sellerId) {
@@ -135,16 +137,16 @@ export class RatingService {
       if (!seller) {
         throw new NotFoundException(`SellerId ${sellerId} not found `);
       }
-
+  
       // Step 1: Retrieve 'Seller' ratings and populate 'ratedBy' field
-      const ratings = await this.ratingModel.find({ 
+      const ratings = await this.ratingModel.find({
         ratedUser: seller.userId,
         role: 'seller' // Only fetch ratings where the user is rated as a seller
       })
       .populate('ratedBy', 'displayName')
       .populate('ratedUser', 'displayName')
       .exec();
-    
+  
       // Step 2: Fetch or Create the UserProfile of the seller
       const sellerProfile = await this.userProfileModel.findOneAndUpdate(
         { userId: seller.userId }, // Query to find the document
@@ -155,29 +157,17 @@ export class RatingService {
           populate: { path: 'userId', select: 'displayName date' } // Population options
         }
       ).exec();
-
-      /*const sellerProfile = await this.userProfileModel.findOne({ userId: seller.userId })
-      .populate({
-        path: 'userId',
-        select: 'displayName date', 
-      })
-      .exec();
-
-      if (!sellerProfile) {
-        throw new NotFoundException('Seller profile not found for sellerId', sellerId);
-      }*/
-
+  
       if (!ratings || ratings.length === 0) {
         // Handle the case where no ratings are found
         return { averageRating: 0, ratingsWithProfile: [], sellerProfile, tagsSummary: {} };
       }
-    
+  
       // Step 3: Compute Average Rating
       const sum = ratings.reduce((acc, rating) => acc + rating.stars, 0);
       const averageRating = sum / ratings.length;
-    
+  
       // Step 4: Aggregate tags from all ratings
-      // Now `tagsSummary` is an object where each key is a tag and its value is the count of that tag.
       const tagsSummary = ratings.reduce((acc, rating) => {
         rating.tags.forEach(tag => {
           if (acc[tag]) {
@@ -188,21 +178,24 @@ export class RatingService {
         });
         return acc;
       }, {});
-
-      // Extract user IDs for profile lookup
-      const userIds = ratings.map(rating => rating.ratedBy._id);
-    
+  
+      // Extract user IDs for profile lookup, handling possible null `ratedBy`
+      const userIds = ratings
+        .map(rating => rating.ratedBy ? rating.ratedBy._id : null)
+        .filter(id => id !== null);
+  
       // Step 5: Fetch UserProfiles based on userIds and map ratings
       const userProfiles = await this.userProfileModel.find({ userId: { $in: userIds } });
-    
+  
       const ratingsWithProfile = ratings.map(rating => {
-        const userProfile = userProfiles.find(profile => profile.userId.equals(rating.ratedBy._id));
+        const userProfile = rating.ratedBy ? userProfiles.find(profile => profile.userId.equals(rating.ratedBy._id)) : null;
         return {
           ...rating.toObject(), // Convert the Mongoose document to a plain object
-          ratedByProfilePicture: userProfile?.profilePicture,
+          ratedBy: rating.ratedBy || null,
+          ratedByProfilePicture: userProfile ? userProfile.profilePicture : null, // Return null if userProfile or ratedBy is null
         };
       });
-
+  
       return { averageRating, ratingsWithProfile, sellerProfile, tagsSummary };
     } catch (error) {
       this.logger.error(`Error fetching ratings with profiles for sellerId ${sellerId}`, error)
@@ -215,6 +208,7 @@ export class RatingService {
       }
     }
   }
+  
 
   async deleteRating(id: string, userId: string): Promise<Rating> {
    const rating = await this.ratingModel.findOneAndDelete({ _id: id, ratedBy: userId }).exec();

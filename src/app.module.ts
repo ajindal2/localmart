@@ -16,6 +16,7 @@ import { ChatModule } from './chat/chat.module';
 import { UserPreferencesModule } from './user-preferences/user-preferences.module';
 import { ImageUploadModule } from './image-upload/image-upload.module';
 import { CommonModule } from './common/common.module';
+import { AccountModule } from './account/account.module';
 
 
 @Module({
@@ -47,6 +48,7 @@ import { CommonModule } from './common/common.module';
     UserPreferencesModule,
     ImageUploadModule,
     CommonModule,
+    AccountModule,
   ],
   controllers: [AppController],
   providers: [AppService],
