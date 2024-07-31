@@ -125,7 +125,7 @@ export class ListingController {
   }
 
   // Get listings for a specific user
-  @UseGuards(JwtAuthGuard)
+  //@UseGuards(JwtAuthGuard)
   @Get('/user/:userId')
   async findListingsByUser(@Param('userId') userId: string) {
     return await this.listingService.findListingsByUser(userId);

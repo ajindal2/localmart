@@ -161,17 +161,17 @@ export class ChatService {
       .populate('listingId')
       .populate({ path: 'sellerId', select: 'displayName' })
       .populate({ path: 'buyerId', select: 'displayName' })
-      .populate({path: 'messages.senderId', select: 'displayName'})
+      .populate({ path: 'messages.senderId', select: 'displayName' })
       .exec();
   
       if (!chats || chats.length === 0) {
         throw new NotFoundException(`No chats found for user with id ${userId}`);
       }
-
+  
       const chatsWithUnread = chats.map(chat => {
         // Filter out messages that were sent by the userId and are unread
         const unreadMessages = chat.messages.filter(message => 
-          !message.read && !message.senderId.equals(userId) 
+          message.senderId && message.senderId.equals && !message.read && !message.senderId.equals(userId)
         );
         return {
           ...chat.toObject(),
@@ -191,7 +191,7 @@ export class ChatService {
         throw new InternalServerErrorException('An unexpected error occurred when getting chats');
       }
     }
-  }
+  }  
 
   async isUserPartOfChat(userId: string, chatId: string): Promise<boolean> {
     try {
