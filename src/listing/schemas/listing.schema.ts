@@ -89,6 +89,9 @@ export class Listing {
       mainCategory: MainCategory;
       subCategories: string[];
     };
+
+    @Prop({ type: Boolean, default: false })
+    flagged: boolean;
   }
 
 export const ListingSchema = SchemaFactory.createForClass(Listing);

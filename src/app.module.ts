@@ -17,6 +17,7 @@ import { UserPreferencesModule } from './user-preferences/user-preferences.modul
 import { ImageUploadModule } from './image-upload/image-upload.module';
 import { CommonModule } from './common/common.module';
 import { AccountModule } from './account/account.module';
+import { BlockUserModule } from './block-user/block-user.module';
 
 
 @Module({
@@ -49,6 +50,7 @@ import { AccountModule } from './account/account.module';
     ImageUploadModule,
     CommonModule,
     AccountModule,
+    BlockUserModule,
   ],
   controllers: [AppController],
   providers: [AppService],

@@ -29,8 +29,12 @@ export class ListingService {
         | { $match: Record<string, any> };
   
       let queryConditions = {
-        // Use regex for case-insensitive match and exclude 'sold' listings
-        state: { $not: { $regex: '^sold$', $options: 'i' } }
+        // Use regex for case-insensitive match and exclude 'sold' listings and listings that are flagged
+        state: { $not: { $regex: '^sold$', $options: 'i' } },
+        $or: [
+          { flagged: false },
+          { flagged: { $exists: false } } // Include documents where 'flagged' does not exist
+        ],
       };
 
       // Fuzzy text search for title
@@ -70,7 +74,7 @@ export class ListingService {
         .limit(paginationOptions.limit)
         .exec();  
 
-        if (!listings) {
+        if (!listings || listings.length === 0) {
           throw new NotFoundException('No listings found matching the criteria');
         }
 
@@ -104,15 +108,21 @@ export class ListingService {
     
       try {
         // Add a condition to the find query to filter out 'sold' listings
-        const listings = await this.listingModel.find({ state: { $not: { $regex: '^sold$', $options: 'i' } } }) 
+        const listings = await this.listingModel.find({
+          state: { $not: { $regex: '^sold$', $options: 'i' } },
+          $or: [
+            { flagged: false },
+            { flagged: { $exists: false } } // Include documents where 'flagged' does not exist
+          ]
+        })
         .skip(skip)
         .limit(limit)
-        .exec();          
+        .exec();        
     
         const totalItems = await this.listingModel.countDocuments();
         const totalPages = Math.ceil(totalItems / limit);
     
-        if (!listings) {
+        if (!listings || listings.length === 0) {
           throw new NotFoundException('No listings found');
         }
     
@@ -144,10 +154,20 @@ export class ListingService {
     if (!seller) {
       throw new NotFoundException(`Seller with userId "${userId}" not found`);
     }
-    const listings = await this.listingModel.find({ sellerId: seller._id }).exec();
-    if (!listings) {
+
+    // Query to find listings that are either not flagged or do not have the flagged field
+    const listings = await this.listingModel.find({
+      sellerId: seller._id,
+      $or: [
+        { flagged: false },
+        { flagged: { $exists: false } } // Include documents where 'flagged' does not exist
+      ]
+    }).exec();
+
+    if (!listings || listings.length === 0) {
       throw new NotFoundException(`No listings found for seller "${seller._id}" `);
     }
+
     return listings;
   } catch (error) {
       this.logger.error(`Error fetching listings by user ${userId}`, error);

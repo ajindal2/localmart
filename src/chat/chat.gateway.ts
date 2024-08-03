@@ -10,6 +10,7 @@ import {
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
 import { ChatService } from './chat.service';
+import { BlockUserService } from '../block-user/block-user.service';
 import { CreateMessageDTO } from './dtos/create-message.dto';
 import { validate } from 'class-validator';
 import { Types } from 'mongoose';
@@ -23,7 +24,9 @@ import { Logger } from '@nestjs/common';
   })
   export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect {
     constructor(
-        private readonly chatService: ChatService) {}
+        private readonly chatService: ChatService,
+        private readonly blockUserService: BlockUserService
+        ) {}
 
     @WebSocketServer() server: Server;
     private logger: Logger = new Logger('ChatGateway');
@@ -39,6 +42,34 @@ import { Logger } from '@nestjs/common';
                 client.emit('error', 'Invalid message payload');
                 return;
             }
+
+            // Retrieve the chat and ensure it exists
+            const fetchedChat = await this.chatService.findChatById(new Types.ObjectId(chatId));
+            if (fetchedChat) {
+
+                // Determine the recipientId based on the chat participants
+                const { senderId } = createMessageDTO;
+                let recipientId: Types.ObjectId;
+
+                if (fetchedChat.sellerId.equals(senderId)) {
+                    recipientId = fetchedChat.buyerId;
+                } else if (fetchedChat.buyerId.equals(senderId)) {
+                    recipientId = fetchedChat.sellerId;
+                } else {
+                    client.emit('error', 'Sender is not a participant of this chat');
+                    return;
+                }
+
+                // Check if the sender is blocked by the recipient
+                const isBlocked = await this.blockUserService.isUserBlocked(recipientId.toString(), senderId);
+                
+                if (isBlocked) {
+                    console.log(`Blocked sender ${senderId} trying to message recipient ${recipientId}`);
+                    //client.emit('error', 'You are blocked from sending messages to this user');
+                    return;
+                }
+            }
+
             const chat = await this.chatService.addMessageToChat(new Types.ObjectId(chatId), createMessageDTO);
             // Include senderId in the message
             const messageToSend = {

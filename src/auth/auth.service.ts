@@ -8,6 +8,9 @@ import { UserService } from 'src/user/user.service';
 import { randomBytes } from 'crypto';
 import { MailerService } from '@nestjs-modules/mailer'; 
 import { v4 as uuidv4 } from 'uuid';
+import { ReportListingDTO } from './dtos/report-listing.dto';
+import { ReportUserDto } from './dtos/report-user.dto';
+import { BlockUserService } from 'src/block-user/block-user.service';
 
 
 @Injectable()
@@ -17,7 +20,8 @@ export class AuthService {
     private readonly refreshTokenModel: Model<RefreshToken>,
     private userService: UserService,
     private jwtService: JwtService,
-    private mailerService: MailerService
+    private mailerService: MailerService,
+    private readonly blockUserService: BlockUserService,
   ) {}
 
   private logger: Logger = new Logger('AuthService');
@@ -161,6 +165,64 @@ export class AuthService {
       } else {
         throw new InternalServerErrorException('An unexpected error occurred');
       }
+    }
+  }
+
+  async sendReportListingMail(reportListingDto: ReportListingDTO, userId: string): Promise<void> {
+    const { listingId, reason } = reportListingDto;
+    try {
+      const mailOptions = {
+        to: 'support@farmvox.com',
+        subject: `Report Listing - ID: ${listingId}`,
+        template: 'report-listing',
+        context: {
+          listingId,
+          reason,
+          userId,
+        },
+      };
+
+      await this.mailerService.sendMail(mailOptions).catch((mailError) => {
+        console.error(`Error sending report for listing ${listingId}, reason: ${reason}`, mailError);
+      });
+    } catch (error) {
+      console.error(`Error sending report for listing ${listingId}, reason: ${reason}`, error);
+      if (error.name === 'ValidationError') {
+        throw new BadRequestException('Validation failed');
+      } else {
+        throw new InternalServerErrorException('An unexpected error occurred');
+      }
+    }
+  }
+
+  async reportUser(reportUserDto: ReportUserDto): Promise<string> {
+    const { reporterId, reportedUserId, reason, blockUser } = reportUserDto;
+
+    try {
+      // Handle user blocking if requested
+      if (blockUser) {
+        await this.blockUserService.blockUser(reporterId, reportedUserId);
+      }
+
+      // Send report email to support team
+      await this.mailerService.sendMail({
+        to: 'support@farmvox.com',
+        subject: `User Report: ${reporterId} reporting ${reportedUserId}`,
+        template: 'report-user',
+        context: {
+          reporterId,
+          reportedUserId,
+          reason,
+        },
+      });
+
+      return 'User report submitted successfully!';
+    } catch (error) {
+      console.error(`Error reporting user ${reportedUserId} by ${reporterId}`, error);
+      if (error instanceof BadRequestException) {
+        throw error;
+      }
+      throw new InternalServerErrorException('An unexpected error occurred while reporting the user');
     }
   }
 

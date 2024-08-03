@@ -12,12 +12,14 @@ import { MailerModule } from '@nestjs-modules/mailer';
 import { join } from 'path';
 import { HandlebarsAdapter } from '@nestjs-modules/mailer/dist/adapters/handlebars.adapter';
 import { ThrottlerModule } from '@nestjs/throttler';
+import { BlockUserModule } from '../block-user/block-user.module';
 
 
 @Module({
   imports: [
     UserModule, 
     PassportModule,
+    BlockUserModule,
     JwtModule.register({
       global: true,
       secret: process.env.JWT_SECRET,

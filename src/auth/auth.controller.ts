@@ -9,6 +9,8 @@ import { FileInterceptor } from '@nestjs/platform-express';
 import { ContactUsDTO } from './dtos/contact-us.dto';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { diskStorage } from 'multer';
+import { ReportListingDTO } from './dtos/report-listing.dto';
+import { ReportUserDto } from './dtos/report-user.dto';
 
 
 @Controller('auth')
@@ -97,5 +99,42 @@ export class AuthController {
       file
     )
     return 'Your message has been sent successfully!';
+  }
+
+  @Post('/report-listing')
+  @UseGuards(JwtAuthGuard) // Ensure only logged-in users can report
+  async reportListing(@Req() req: Express.Request, @Body() reportListingDto: ReportListingDTO): Promise<string> {    
+    if (!req.user) {
+      throw new UnauthorizedException('No user object found in request');
+    }
+
+    // Extract userId and check if it exists
+    const userIdFromReq = req.user['userId']; 
+    if (!userIdFromReq) {
+      throw new UnauthorizedException('User ID not found in request');
+    }
+
+    await this.authService.sendReportListingMail(reportListingDto, userIdFromReq);
+    return 'Your report has been submitted successfully!';
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Post('/report-user')
+  async reportUser(@Body() reportUserDto: ReportUserDto, @Req() req: Express.Request) : Promise<string> {
+    if (!req.user) {
+      throw new UnauthorizedException('No user object found in request');
+    }
+
+    const reporterId = req.user['userId'];
+    if (!reporterId) {
+      throw new UnauthorizedException('User ID not found in request');
+    }
+
+    // Validate that the reporterId matches the authenticated user
+    if (reporterId !== reportUserDto.reporterId) {
+      throw new UnauthorizedException('You are not authorized to perform this action');
+    }
+
+    return await this.authService.reportUser(reportUserDto);
   }
 }

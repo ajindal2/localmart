@@ -380,5 +380,30 @@ export class ChatService {
       this.logger.error(`Error sending push notification for pushToken ${pushToken} and chatId ${chatId}`, error);
       //throw new InternalServerErrorException('Error updating notification count');
     }
+  }
+
+  /**
+   * Find a chat by its unique ID. Only using it in Gateway to find blocked users.
+   * @param chatId The ObjectId of the chat to retrieve
+   * @returns The chat document if found, returns null otherwise to not block messaging
+   */
+  async findChatById(chatId: Types.ObjectId): Promise<Chat> {
+    try {
+      // Find the chat by its ID
+      const chat = await this.chatModel.findById(chatId).exec();
+
+      // If no chat is found, throw a NotFoundException
+      if (!chat) {
+        return null;
+        //throw new NotFoundException(`Chat with ID ${chatId} not found`);
+      }
+
+      // Return the found chat
+      return chat;
+    } catch (error) {
+      // Log and rethrow the error for further handling
+      console.error(`Error retrieving chat with ID ${chatId}:`, error);
+      return null;
+    }
   } 
 }
