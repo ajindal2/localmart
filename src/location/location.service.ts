@@ -51,7 +51,7 @@ export class LocationService {
             } else {
                 // Cache the error state without specific "unknown" result
                 this.cacheService.set(cacheKey, { error: true, errorTimestamp: Date.now() }, 60000); // Cache this error state for shorter 1 minute.
-                this.logger.error(`Failed to reverse geocode coordinates ${lat} ${lng}`, '');
+                this.logger.error(`Failed to reverse geocode coordinates ${lat} ${lng}`, data.status);
                 throw new Error('Failed to fetch location');
             }
         } catch (error) {
@@ -94,7 +94,7 @@ export class LocationService {
                 throw new BadRequestException(`Postal code not found '${postalCode}'`);
             } else {
                 // Handle other API response statuses
-                this.logger.error(`Failed to validate and geocode postal code: ${postalCode}`, '');
+                this.logger.error(`Failed to validate and geocode postal code: ${postalCode}`, data.status);
                 throw new Error('Failed to fetch location.');
             }
         } catch (error) {
